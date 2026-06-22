@@ -1,4 +1,4 @@
-# ().venv) uv pip install numpy sounddevice psychopy psychopy-sounddevice pylsl pyserial
+# uv pip install numpy sounddevice psychopy psychopy-sounddevice pylsl pyserial
 import os
 import csv
 import random
@@ -10,9 +10,21 @@ from pylsl import StreamInfo, StreamOutlet, local_clock
 from psychopy import prefs
 
 # ============================================================
+# MACHINE-SPECIFIC SETTINGS
+# Audio device name and COM port differ from one computer to another.
+# See config_local.example.py for setup instructions.
+try:
+    from config_local import AUDIO_DEVICE_NAME, MMBT_PORT
+except ImportError:
+    raise RuntimeError(
+        "Missing config_local.py. Copy config_local.example.py to "
+        "config_local.py and fill in AUDIO_DEVICE_NAME / MMBT_PORT for this machine."
+    )
+
+# ============================================================
 # PSYCHOPY AUDIO BACKEND
 prefs.hardware["audioLib"] = ["sounddevice"]
-prefs.hardware["audioDevice"] = ["sortie_pps (Realtek(R) Audio)"]
+prefs.hardware["audioDevice"] = [AUDIO_DEVICE_NAME]
 
 from psychopy import core, visual, sound
 from psychopy.hardware import keyboard
@@ -36,6 +48,10 @@ AUDIO_DIR = "audio_cache"
 # ANT = audio + tactile near
 # AFT = audio + tactile far
 # P3A = oddball tone
+#
+# SPEAKER SETUP (must match the audio panning below to get a real near/far effect):
+#   "near" (AN / ANT) is played on the RIGHT audio channel -> place the RIGHT speaker IN FRONT OF / close to the participant.
+#   "far"  (AF / AFT) is played on the LEFT audio channel  -> place the LEFT speaker BEHIND / far from the participant.
 NUM_BLOCKS_PPS = 6
 TRIALS_PER_CONDITION_PER_BLOCK = 11
 PPS_CONDITIONS = ["T", "AN", "AF", "ANT", "AFT"]
@@ -44,7 +60,6 @@ EXTRA_CONDITION = "P3A"
 # ============================================================
 # TIMING PARAMETERS
 DURATION_AUDIO = 0.100
-DURATION_TACTILE = 0.005
 ISI_VALUES_PPS = [2.5, 2.6, 2.7, 2.8, 2.9, 3.0]
 
 DURATION_FRUIT = 3.5
@@ -53,12 +68,14 @@ ISI_FRUIT = 0.3
 DURATION_END_BLOCK = 1.0
 DURATION_AFTER_BREAK = 30.0
 DURATION_FEEDBACK = 2.0
-DURATION_BASELINE = 5.0 
+DURATION_BASELINE = 5.0
 DURATION_BASELINE_BLOCK = 3.0
+DURATION_RESTING_STATE = 1
+DURATION_TASK_START_MSG = 3.0
 
 # ============================================================
 # DISPLAY PARAMETERS
-TEXT_HEIGHT = 20
+TEXT_HEIGHT = 32
 TEXT_WRAP = 900
 
 # ============================================================
@@ -69,7 +86,7 @@ TARGET_RMS = 0.08
 
 # ============================================================
 # MMBT-S / DIGITIMER SETTINGS
-MMBT_PORT = "COM3"
+# MMBT_PORT comes from config_local.py (see MACHINE-SPECIFIC SETTINGS above).
 MMBT_BAUDRATE = 9600
 MMBT_PULSE_WIDTH = 0.005
 DIGITIMER_TTL_CODE = 128 
@@ -96,17 +113,26 @@ TRIGGER_CODES = {
     "EXP_END": 96,
     "BASELINE_START": 95,
     "BASELINE_END": 94,
+    "RESTING_STATE_START": 93,
+    "RESTING_STATE_END": 92,
 }
 
 # ============================================================
 # INSTRUCTION TEXTS
 TEXTS = {
     "fr": {
-        "group" : "Groupe : \n\nAppuyez sur E ou C, puis sur la barre d'espace.",
-        "participant": "Le numéro du participant :\n\Appuyez sur la barre d'espace.",
-        "condition": "La condition : \n\nAppuyez sur M ou V, puis sur la barre d'espace",
-        "consigne_M": "Vous allez d'abord entendre des audios de méditation.\nVeuillez rester dans cet état tout au long de la séquence.\n\nPendant ce temps, vous entendrez des sons provenant des deux haut-parleurs situés devant vous\net percevrez une légère stimulation au niveau de votre torse.\n\nMerci de rester aussi immobile que possible, en fixant la croix.\n\nQuand vous êtes prêt(e), appuyez sur la barre d'espace pour commencer.",
-        "consigne_V": "Vous allez voir des fruits défiler.\nVeuillez compter le nombre de FRAISES.\n\nEn même temps, vous allez entendre des sons depuis les deux haut-parleurs devant vous\net percevoir une petite stimulation au niveau de votre torse.\n\nRestez aussi immobile que possible.\n\nQuand vous êtes prêt(e), appuyez sur la barre d'espace pour commencer.",
+        "group_heading": "Le groupe :",
+        "group_hint": "Appuyez sur E ou C, puis sur la barre d'espace pour avancer.",
+        "participant_heading": "Le numéro du participant :",
+        "participant_hint": "Tapez le numéro ou code, puis appuyez sur la barre d'espace pour avancer.",
+        "condition_heading": "La condition :",
+        "condition_hint": "Appuyez sur M ou V, puis sur la barre d'espace pour avancer.",
+        "resting_state_heading": "Nous allons d'abord enregistrer une période de repos.\n\nFixez la croix de fixation pendant 2 minutes, sans bouger.",
+        "resting_state_hint": "Quand vous êtes prêt(e), appuyez sur la barre d'espace pour commencer.",
+        "task_start": "La tâche va maintenant commencer.",
+        "consigne_M": "Vous allez d'abord entendre des audios de méditation.\nVeuillez rester dans cet état tout au long de la séquence.\n\nPendant ce temps, vous entendrez des sons provenant des deux haut-parleurs situés devant vous\net percevrez une légère stimulation au niveau de votre torse.\n\nMerci de rester aussi immobile que possible, en fixant la croix.",
+        "consigne_V": "Vous allez voir des fruits défiler.\nVeuillez compter le nombre de FRAISES.\n\nEn même temps, vous allez entendre des sons depuis les deux haut-parleurs devant vous\net percevoir une petite stimulation au niveau de votre torse.\n\nRestez aussi immobile que possible.",
+        "consigne_hint": "Quand vous êtes prêt(e), appuyez sur la barre d'espace pour commencer.",
         "break": "Fin du bloc {}/{}",
         "question": "Combien de fraises avez-vous vues ?\n\nAppuyez sur la barre d'espace pour valider.",
         "feedback_template": "Vous avez répondu : {ans}\nNombre réel de fraises : {real}\n\nÉcart : {err}",
@@ -118,11 +144,18 @@ TEXTS = {
         "transition": "Fin de la condition {}.\n\nLa condition {} va maintenant commencer.\n\nAppuyez sur la barre d'espace quand vous êtes prêt(e).",
     },
     "en": {
-        "group": "Group: \n\nPress E or C, then press the space bar.",
-        "participant": "Participant number:\nPress the space bar.",
-        "condition": "Condition: \n\nPress M or V, then press the space bar.",
-        "consigne_M": "You will first hear meditation audio recordings.\nPlease remain in this state throughout the sequence.\n\nDuring this time, you will hear sounds coming from the two loudspeakers in front of you\nand feel a brief stimulation on your chest.\n\nPlease remain as still as possible while fixating the cross.\n\nWhen you are ready, press the space bar to begin.",
-        "consigne_V": "You will see fruits appearing on the screen.\nPlease count the number of STRAWBERRIES.\n\nAt the same time, you will hear sounds coming from the two loudspeakers in front of you\nand feel a brief stimulation on your chest.\n\nPlease remain as still as possible.\n\nWhen you are ready, press the space bar to begin.",
+        "group_heading": "Group:",
+        "group_hint": "Press E or C, then press the space bar to continue.",
+        "participant_heading": "Participant number:",
+        "participant_hint": "Type the number or code, then press the space bar to continue.",
+        "condition_heading": "Condition:",
+        "condition_hint": "Press M or V, then press the space bar to continue.",
+        "resting_state_heading": "We will first record a resting-state period.\n\nFixate the cross for 2 minutes, without moving.",
+        "resting_state_hint": "When you are ready, press the space bar to begin.",
+        "task_start": "The task will now begin.",
+        "consigne_M": "You will first hear meditation audio recordings.\nPlease remain in this state throughout the sequence.\n\nDuring this time, you will hear sounds coming from the two loudspeakers in front of you\nand feel a brief stimulation on your chest.\n\nPlease remain as still as possible while fixating the cross.",
+        "consigne_V": "You will see fruits appearing on the screen.\nPlease count the number of STRAWBERRIES.\n\nAt the same time, you will hear sounds coming from the two loudspeakers in front of you\nand feel a brief stimulation on your chest.\n\nPlease remain as still as possible.",
+        "consigne_hint": "When you are ready, press the space bar to begin.",
         "break": "End of block {}/{}",
         "question": "How many strawberries did you see?\n\nPress the space bar to validate.",
         "feedback_template": "Your answer: {ans}\nReal number of strawberries: {real}\n\nDifference: {err}",
@@ -138,15 +171,15 @@ TEXTS = {
 # ============================================================
 # CSV HEADERS
 BLOCK_FIELDNAMES = [
-    "group", "participant_num", "language", "datetime", "condition", "block",
+    "group", "participant_num", "language", "datetime", "condition_task", "block",
     "response_strawberries", "real_strawberries", "error", "total_fruits",
     "trial_sequence", "n_T", "n_AN", "n_AF", "n_ANT", "n_AFT", "n_P3A",
     "block_duration_sec",
 ]
 
 TRIAL_FIELDNAMES = [
-    "group", "participant_num", "language", "datetime", "condition",
-    "block", "trial_index", "trial_condition",
+    "group", "participant_num", "language", "datetime", "condition_task",
+    "block", "trial_index", "condition_trial",
     "audio_side", "audio_present", "tactile_present",
     "isi_sec", "stim_onset_clock", "trigger_code",
     "lsl_sent", "ttl_sent", "lsl_time", "ttl_on_time", "ttl_off_time",
@@ -162,10 +195,11 @@ trial_log_rows = []
 block_log_path = None
 trial_log_path = None
 language = ""
-group =""
-condition = ""
+group = ""  # "E" (expert meditator) or "C" (control) -- see GROUP SELECTION below
+condition_task = ""  # "M" = meditation, "V" = vigilance (strawberry-counting task)
 pp_id = ""
 session_dt = ""
+vigilance_task = None
 
 # ============================================================
 # BASIC UTILITIES
@@ -417,10 +451,13 @@ def draw_fixation_only():
     fixation_h.draw()
     fixation_v.draw()
 
-def draw_text(text, height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 0)):
-    stim = visual.TextStim(win, text=text, color="white", height=height, wrapWidth=wrap, pos=pos)
+def draw_text(text, height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 0), italic=False):
+    stim = visual.TextStim(win, text=text, color="white", height=height, wrapWidth=wrap, pos=pos, italic=italic)
     stim.draw()
     return stim
+
+def draw_hint(text, pos=(0, -300)):
+    draw_text(text, height=22, wrap=TEXT_WRAP, pos=pos, italic=True)
 
 # ============================================================
 # CSV SAVING
@@ -430,18 +467,18 @@ def write_csv(path, rows, fieldnames):
         writer.writeheader()
         writer.writerows(rows)
 
-def make_block_log_filename(pp_id, group, condition):
+def make_block_log_filename(pp_id, group, condition_task):
     ensure_data_dir()
     return os.path.join(
         DATA_DIR,
-        f"sub-{pp_id}_group-{group}_cond-{condition}_{timestamp_for_filename()}_blocks.csv"
+        f"sub-{pp_id}_group-{group}_cond-{condition_task}_{timestamp_for_filename()}_blocks.csv"
     )
 
-def make_trial_log_filename(pp_id, group, condition):
+def make_trial_log_filename(pp_id, group, condition_task):
     ensure_data_dir()
     return os.path.join(
         DATA_DIR,
-        f"sub-{pp_id}_group-{group}_cond-{condition}_{timestamp_for_filename()}_trials.csv"
+        f"sub-{pp_id}_group-{group}_cond-{condition_task}_{timestamp_for_filename()}_trials.csv"
     )
 
 def save_logs_now():
@@ -509,6 +546,21 @@ def show_text_space(text, height=TEXT_HEIGHT, wrap=TEXT_WRAP):
         if any(k.name == "space" for k in keys):
             break
 
+def show_instruction_space(heading, hint, height=TEXT_HEIGHT, wrap=TEXT_WRAP):
+    # Same idea as the group/condition screens: the heading stays prominent,
+    # the "press space to continue" hint is small and italic at the bottom.
+    clear_keyboard()
+    while True:
+        check_escape()
+        draw_text(heading, height=height, wrap=wrap, pos=(0, 80))
+        draw_hint(hint)
+        win.flip()
+        keys = get_keys(["space", "escape"])
+        if any(k.name == "escape" for k in keys):
+            safe_quit()
+        if any(k.name == "space" for k in keys):
+            break
+
 def show_text_timed(text, seconds, height=TEXT_HEIGHT, wrap=TEXT_WRAP):
     t_end = core.getTime() + seconds
     while core.getTime() < t_end:
@@ -516,9 +568,9 @@ def show_text_timed(text, seconds, height=TEXT_HEIGHT, wrap=TEXT_WRAP):
         draw_text(text, height=height, wrap=wrap)
         win.flip()
 
-def show_baseline(seconds, send_markers=False):
+def show_baseline(seconds, send_markers=False, start_key="BASELINE_START", end_key="BASELINE_END"):
     if send_markers:
-        send_event("BASELINE_START", send_lsl=True, send_ttl=False)
+        send_event(start_key, send_lsl=True, send_ttl=False)
 
     t_end = core.getTime() + seconds
     while core.getTime() < t_end:
@@ -527,7 +579,20 @@ def show_baseline(seconds, send_markers=False):
         win.flip()
 
     if send_markers:
-        send_event("BASELINE_END", send_lsl=True, send_ttl=False)
+        send_event(end_key, send_lsl=True, send_ttl=False)
+
+def show_resting_state():
+    show_instruction_space(
+        TEXTS[language]["resting_state_heading"],
+        TEXTS[language]["resting_state_hint"],
+    )
+    show_baseline(
+        DURATION_RESTING_STATE,
+        send_markers=True,
+        start_key="RESTING_STATE_START",
+        end_key="RESTING_STATE_END",
+    )
+    show_text_timed(TEXTS[language]["task_start"], seconds=DURATION_TASK_START_MSG, height=TEXT_HEIGHT, wrap=TEXT_WRAP)
 
 def show_end_of_block_screen(block_idx):
     txt = TEXTS[language]["break"].format(block_idx + 1, NUM_BLOCKS_PPS)
@@ -541,7 +606,7 @@ def show_ipad_pheno():
     show_text_space(TEXTS[language]["ipad_pheno"], height=TEXT_HEIGHT, wrap=TEXT_WRAP)
 
 def show_after_break():
-    key_name = "after_break_V" if condition == "V" else "after_break_M"
+    key_name = "after_break_V" if condition_task == "V" else "after_break_M"
     show_text_timed(TEXTS[language][key_name], seconds=DURATION_AFTER_BREAK, height=TEXT_HEIGHT, wrap=TEXT_WRAP)
 
 # ============================================================
@@ -557,23 +622,47 @@ def collect_single_choice(valid_keys):
             if k.name in valid_keys:
                 return k.name
 
-def collect_numeric_input(prompt_text, max_digits=2):
-    typed = ""
+def select_single_key(heading, hint, valid_keys):
+    # Show the picked key on screen and wait for space bar to confirm
+    # (backspace clears the current choice so it can be re-picked).
+    chosen = ""
     clear_keyboard()
 
     while True:
         check_escape()
-        display_text = typed if typed else "_"
-        draw_text(prompt_text, height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 40))
-        draw_text(display_text, height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, -20))
+        draw_text(heading, height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 120))
+        draw_text(chosen if chosen else "_", height=48, wrap=TEXT_WRAP, pos=(0, 0))
+        draw_hint(hint)
         win.flip()
 
-        keys = get_keys(
-            ["space", "backspace"] +
-            [str(i) for i in range(10)] +
-            [f"num_{i}" for i in range(10)] +
-            ["escape"]
-        )
+        keys = get_keys(valid_keys + ["space", "backspace", "escape"])
+        for k in keys:
+            if k.name == "escape":
+                safe_quit()
+            elif k.name == "backspace":
+                chosen = ""
+            elif k.name in valid_keys and chosen == "":
+                chosen = k.name.upper()
+            elif k.name == "space" and chosen != "":
+                return chosen
+
+LETTER_KEYS = list("abcdefghijklmnopqrstuvwxyz")
+
+def collect_text_input(heading, hint, max_chars=10):
+    # Accepts digits and letters (e.g. participant IDs like "12" or "P03").
+    typed = ""
+    clear_keyboard()
+    digit_keys = [str(i) for i in range(10)] + [f"num_{i}" for i in range(10)]
+
+    while True:
+        check_escape()
+        display_text = typed if typed else "_"
+        draw_text(heading, height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 120))
+        draw_text(display_text, height=48, wrap=TEXT_WRAP, pos=(0, 0))
+        draw_hint(hint)
+        win.flip()
+
+        keys = get_keys(["space", "backspace", "escape"] + LETTER_KEYS + digit_keys)
 
         for k in keys:
             name = k.name
@@ -583,10 +672,10 @@ def collect_numeric_input(prompt_text, max_digits=2):
                 return typed
             elif name == "backspace":
                 typed = typed[:-1]
-            elif name.isdigit() and len(typed) < max_digits:
-                typed += name
-            elif name.startswith("num_") and len(typed) < max_digits:
+            elif name.startswith("num_") and len(typed) < max_chars:
                 typed += name[-1]
+            elif (name.isdigit() or name in LETTER_KEYS) and len(typed) < max_chars:
+                typed += name.upper()
 
 # ============================================================
 # BLOCK RANDOMIZATION
@@ -718,27 +807,27 @@ def frame_loop_until(t_end, vigilance_task=None):
 
 # ============================================================
 # TRIAL LOGIC
-def describe_trial(condition):
-    if condition == "T":
+def describe_trial(condition_trial):
+    if condition_trial == "T":
         return False, True, ""
-    if condition == "AN":
+    if condition_trial == "AN":
         return True, False, "right"
-    if condition == "AF":
+    if condition_trial == "AF":
         return True, False, "left"
-    if condition == "ANT":
+    if condition_trial == "ANT":
         return True, True, "right"
-    if condition == "AFT":
+    if condition_trial == "AFT":
         return True, True, "left"
-    if condition == "P3A":
+    if condition_trial == "P3A":
         return True, False, "both"
-    raise ValueError(f"Unknown condition: {condition}")
+    raise ValueError(f"Unknown condition_trial: {condition_trial}")
 
-def run_trial(condition, block_idx, trial_idx, vigilance_task=None):
-    audio_present, tactile_present, audio_side = describe_trial(condition)
+def run_trial(condition_trial, block_idx, trial_idx, vigilance_task=None):
+    audio_present, tactile_present, audio_side = describe_trial(condition_trial)
     stim_onset = clock.getTime()
 
     event_info = {
-        "event_code": TRIGGER_CODES.get(condition, 0),
+        "event_code": TRIGGER_CODES.get(condition_trial, 0),
         "local_time": None,
         "lsl_time": None,
         "ttl_on_time": None,
@@ -750,39 +839,39 @@ def run_trial(condition, block_idx, trial_idx, vigilance_task=None):
     audio_play_call_time = None
 
     # Tactile only
-    if condition == "T":
+    if condition_trial == "T":
         event_info = send_event(
-            condition,
+            condition_trial,
             send_lsl=True,
             send_ttl=True,
             ttl_code=DIGITIMER_TTL_CODE
         )
 
     # Audio only
-    elif condition in ["AN", "AF", "P3A"]:
-        event_info = send_event(condition, send_lsl=True, send_ttl=False)
+    elif condition_trial in ["AN", "AF", "P3A"]:
+        event_info = send_event(condition_trial, send_lsl=True, send_ttl=False)
         audio_play_call_time = core.getTime()
 
-        if condition == "AN":
+        if condition_trial == "AN":
             play_sound_obj(NOISE_RIGHT)
-        elif condition == "AF":
+        elif condition_trial == "AF":
             play_sound_obj(NOISE_LEFT)
-        elif condition == "P3A":
+        elif condition_trial == "P3A":
             play_sound_obj(TONE_P3A)
 
     # Audio + tactile
-    elif condition in ["ANT", "AFT"]:
+    elif condition_trial in ["ANT", "AFT"]:
         event_info = send_event(
-            condition,
+            condition_trial,
             send_lsl=True,
             send_ttl=True,
             ttl_code=DIGITIMER_TTL_CODE
         )
         audio_play_call_time = core.getTime()
 
-        if condition == "ANT":
+        if condition_trial == "ANT":
             play_sound_obj(NOISE_RIGHT)
-        elif condition == "AFT":
+        elif condition_trial == "AFT":
             play_sound_obj(NOISE_LEFT)
 
     # Stimulus presentation window
@@ -791,7 +880,7 @@ def run_trial(condition, block_idx, trial_idx, vigilance_task=None):
     stop_all_sounds()
 
     # Offset marker
-    send_event(condition + "_OFF", send_lsl=True, send_ttl=False)
+    send_event(condition_trial + "_OFF", send_lsl=True, send_ttl=False)
 
     # Inter-stimulus interval
     isi = random.choice(ISI_VALUES_PPS)
@@ -804,10 +893,10 @@ def run_trial(condition, block_idx, trial_idx, vigilance_task=None):
         "language": language,
         "group":group,
         "datetime": session_dt,
-        "condition": condition,
+        "condition_task": condition_task,
         "block": block_idx + 1,
         "trial_index": trial_idx + 1,
-        "trial_condition": condition,
+        "condition_trial": condition_trial,
         "audio_side": audio_side,
         "audio_present": int(audio_present),
         "tactile_present": int(tactile_present),
@@ -873,89 +962,69 @@ while True:
 
 # ============================================================
 # GROUP SELECTION
-draw_text(TEXTS[language]["group"], height=TEXT_HEIGHT, wrap=TEXT_WRAP)
-win.flip()
-group = collect_single_choice(["e", "c"]).upper()
+# "E" = expert meditator, "C" = control (never meditated). Typed by the experimenter, not shown to the participant.
+group = select_single_key(
+    TEXTS[language]["group_heading"],
+    TEXTS[language]["group_hint"],
+    ["e", "c"],
+)
 print(f"Group: {group}")
 
 # ============================================================
 # PARTICIPANT INFO
-pp_id = collect_numeric_input(TEXTS[language]["participant"], max_digits=2)
+pp_id = collect_text_input(
+    TEXTS[language]["participant_heading"],
+    TEXTS[language]["participant_hint"],
+    max_chars=10,
+)
 print(f"Participant ID: {pp_id}")
 
-while True:
-    clear_keyboard()
-    draw_text(TEXTS[language]["condition"], height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 30))
-    draw_text(condition if condition else "_", height=24, wrap=TEXT_WRAP, pos=(0, -120))
-    win.flip()
-
-    keys = get_keys(["m", "v", "space", "backspace", "escape"])
-    for k in keys:
-        if k.name == "escape":
-            safe_quit()
-        elif k.name == "backspace":
-            condition = ""
-        elif k.name in ["m", "v"] and condition == "":
-            condition = k.name.upper()
-        elif k.name == "space" and condition in ["M", "V"]:
-            break
-
-    if any(k.name == "space" for k in keys) and condition in ["M", "V"]:
-        break
-
-print(f"Condition: {condition}")
+# ============================================================
+# CONDITION SELECTION (M = meditation, V = vigilance)
+condition_task = select_single_key(
+    TEXTS[language]["condition_heading"],
+    TEXTS[language]["condition_hint"],
+    ["m", "v"],
+)
+print(f"Condition: {condition_task}")
 
 # ============================================================
 # INITIALIZATION of LOG + LSL + MMBT
 session_dt = now_str()
-block_log_path = make_block_log_filename(pp_id, group, condition)
-trial_log_path = make_trial_log_filename(pp_id, group, condition)
-
-print("Block log:", block_log_path)
-print("Trial log:", trial_log_path)
 
 setup_lsl()
 setup_mmbt()
 
-
-# ============================================================
-# BUILD EXPERIMENT
-all_blocks = build_experiment()
-vigilance_task = VigilanceTaskContinuous(win) if condition == "V" else None
-
-instruction_key = "consigne_V" if condition == "V" else "consigne_M"
-show_text_space(TEXTS[language][instruction_key])
-
-send_event("EXP_START", send_lsl=True, send_ttl=False)
-show_baseline(DURATION_BASELINE, send_markers=True)
-
 # ============================================================
 # MAIN LOOP
-condition_labels = {
+condition_task_labels = {
     "M": {"fr": "méditation", "en": "meditation"},
     "V": {"fr": "vigilance",  "en": "vigilance"},
 }
 
-def run_condition(cond):
+def run_condition_task(cond, is_first=False):
     global block_log_rows, trial_log_rows, block_log_path, trial_log_path
-    global condition, vigilance_task
+    global condition_task, vigilance_task
 
-    condition = cond
+    condition_task = cond
 
     # Reset logs for this condition
     block_log_rows = []
     trial_log_rows = []
-    block_log_path = make_block_log_filename(pp_id, language, condition)
-    trial_log_path = make_trial_log_filename(pp_id, language, condition)
-    print(f"\n=== Starting condition {condition} ===")
+    block_log_path = make_block_log_filename(pp_id, group, condition_task)
+    trial_log_path = make_trial_log_filename(pp_id, group, condition_task)
+    print(f"\n=== Starting condition {condition_task} ===")
     print("Block log:", block_log_path)
     print("Trial log:", trial_log_path)
 
-    vigilance_task = VigilanceTaskContinuous(win) if condition == "V" else None
+    vigilance_task = VigilanceTaskContinuous(win) if condition_task == "V" else None
     all_blocks = build_experiment()
 
-    instruction_key = "consigne_V" if condition == "V" else "consigne_M"
-    show_text_space(TEXTS[language][instruction_key])
+    instruction_key = "consigne_V" if condition_task == "V" else "consigne_M"
+    show_instruction_space(TEXTS[language][instruction_key], TEXTS[language]["consigne_hint"])
+
+    if is_first:
+        show_resting_state()
 
     send_event("EXP_START", send_lsl=True, send_ttl=False)
     show_baseline(DURATION_BASELINE, send_markers=True)
@@ -969,19 +1038,19 @@ def run_condition(cond):
 
         counts = {k: 0 for k in PPS_CONDITIONS + [EXTRA_CONDITION]}
 
-        if condition == "V":
+        if condition_task == "V":
             vigilance_task.start(clock.getTime())
 
         for trial_idx, cond_trial in enumerate(block):
             counts[cond_trial] += 1
             run_trial(
-                condition=cond_trial,
+                condition_trial=cond_trial,
                 block_idx=block_idx,
                 trial_idx=trial_idx,
-                vigilance_task=vigilance_task if condition == "V" else None
+                vigilance_task=vigilance_task if condition_task == "V" else None
             )
 
-        if condition == "V":
+        if condition_task == "V":
             vigilance_task.stop()
 
         block_t1 = clock.getTime()
@@ -995,12 +1064,12 @@ def run_condition(cond):
             "language": language,
             "group": group,
             "datetime": session_dt,
-            "condition": condition,
+            "condition_task": condition_task,
             "block": block_idx + 1,
             "response_strawberries": "",
             "real_strawberries": "",
             "error": "",
-            "total_fruits": vigilance_task.total_fruit_count if condition == "V" else "",
+            "total_fruits": vigilance_task.total_fruit_count if condition_task == "V" else "",
             "trial_sequence": trial_sequence_str,
             "n_T": counts["T"],
             "n_AN": counts["AN"],
@@ -1013,7 +1082,7 @@ def run_condition(cond):
 
         show_end_of_block_screen(block_idx)
 
-        if condition == "V":
+        if condition_task == "V":
             real = vigilance_task.strawberry_count
             ans, err = ask_strawberry_question(real)
             show_feedback(ans, real, err)
@@ -1034,17 +1103,17 @@ def run_condition(cond):
 
 try:
     # Condition 1 : chosen by experimenter
-    cond_1 = condition
+    cond_1 = condition_task
     cond_2 = "V" if cond_1 == "M" else "M"
 
-    run_condition(cond_1)
+    run_condition_task(cond_1, is_first=True)
 
     # Transition screen
-    label_1 = condition_labels[cond_1][language]
-    label_2 = condition_labels[cond_2][language]
+    label_1 = condition_task_labels[cond_1][language]
+    label_2 = condition_task_labels[cond_2][language]
     show_text_space(TEXTS[language]["transition"].format(label_1, label_2))
 
-    run_condition(cond_2)
+    run_condition_task(cond_2)
 
 finally:
     save_logs_now()
