@@ -115,6 +115,33 @@ TRIGGER_CODES = {
     "BASELINE_END": 94,
     "RESTING_STATE_START": 93,
     "RESTING_STATE_END": 92,
+
+    # Instruction screens
+    "LANG_SELECT_START": 100,
+    "PARTICIPANT_ID_START": 104,
+    "CONDITION_SELECT_START": 106,
+    "RESTING_STATE_INSTR_START": 108,
+    "RESTING_STATE_INSTR_END": 109,
+    "TASK_START_MSG_START": 110,
+    "TASK_START_MSG_END": 111,
+    "CONSIGNE_M_START": 112,
+    "CONSIGNE_M_END": 113,
+    "CONSIGNE_V_START": 114,
+    "CONSIGNE_V_END": 115,
+    "BLOCK_BREAK_START": 116,
+    "BLOCK_BREAK_END": 117,
+    "IPAD_PHENO_START": 118,
+    "IPAD_PHENO_END": 119,
+    "AFTER_BREAK_START": 120,
+    "AFTER_BREAK_END": 121,
+    "FEEDBACK_START": 122,
+    "FEEDBACK_END": 123,
+    "TRANSITION_START": 124,
+    "TRANSITION_END": 125,
+    "END_SCREEN_START": 126,
+    "END_SCREEN_END": 127,
+    "STRAWBERRY_QUESTION_START": 128,
+    "STRAWBERRY_QUESTION_END": 129,
 }
 
 # ============================================================
@@ -195,8 +222,8 @@ trial_log_rows = []
 block_log_path = None
 trial_log_path = None
 language = ""
-group = ""  # "E" (expert meditator) or "C" (control) -- see GROUP SELECTION below
-condition_task = ""  # "M" = meditation, "V" = vigilance (strawberry-counting task)
+group = ""  # "E" (expert meditator) or "C" (control) 
+condition_task = ""  # "M" = meditation, "V" = vigilance
 pp_id = ""
 session_dt = ""
 vigilance_task = None
@@ -225,23 +252,28 @@ def setup_lsl():
     if not LSL_AVAILABLE:
         return
 
-    info = StreamInfo(
-        name="PPS_Markers",
-        type="Markers",
-        channel_count=1,
-        nominal_srate=0,
-        channel_format="int32",
-        source_id="pps_psychopy_001"
-    )
+    try:
+        info = StreamInfo(
+            name="PPS_Markers",
+            type="Markers",
+            channel_count=1,
+            nominal_srate=0,
+            channel_format="int32",
+            source_id="pps_psychopy_001"
+        )
 
-    chns = info.desc().append_child("channels")
-    ch = chns.append_child("channel")
-    ch.append_child_value("label", "Markers")
-    ch.append_child_value("type", "Markers")
+        chns = info.desc().append_child("channels")
+        ch = chns.append_child("channel")
+        ch.append_child_value("label", "Markers")
+        ch.append_child_value("type", "Markers")
 
-    marker_outlet = StreamOutlet(info)
-    print("LSL marker outlet created: PPS_Markers")
-    core.wait(1.0)
+        marker_outlet = StreamOutlet(info)
+        print("LSL marker outlet created: PPS_Markers")
+        core.wait(1.0)
+
+    except Exception as e:
+        print(f"WARNING: Could not create LSL marker outlet: {e}")
+        marker_outlet = None
 
 # ============================================================
 # MMBT-S SERIAL SETUP
@@ -438,6 +470,14 @@ def stop_all_sounds():
 win = visual.Window(fullscr=True, color="black", units="pix")
 kb = keyboard.Keyboard()
 
+# ============================================================
+# INITIALIZATION of LSL + MMBT
+# Done before any screen is shown, so every instruction/consigne the
+# participant sees (including language/group/condition selection) can be
+# marked in the EEG/ECG signal.
+setup_lsl()
+setup_mmbt()
+
 fixation_h = visual.Line(win, start=(-15, 0), end=(15, 0), lineWidth=3, lineColor="white")
 fixation_v = visual.Line(win, start=(0, -15), end=(0, 15), lineWidth=3, lineColor="white")
 
@@ -534,8 +574,10 @@ def check_escape():
 
 # ============================================================
 # SCREEN HELPERS
-def show_text_space(text, height=TEXT_HEIGHT, wrap=TEXT_WRAP):
+def show_text_space(text, height=TEXT_HEIGHT, wrap=TEXT_WRAP, start_key=None, end_key=None):
     clear_keyboard()
+    if start_key:
+        send_event(start_key, send_lsl=True, send_ttl=False)
     while True:
         check_escape()
         draw_text(text, height=height, wrap=wrap)
@@ -545,11 +587,15 @@ def show_text_space(text, height=TEXT_HEIGHT, wrap=TEXT_WRAP):
             safe_quit()
         if any(k.name == "space" for k in keys):
             break
+    if end_key:
+        send_event(end_key, send_lsl=True, send_ttl=False)
 
-def show_instruction_space(heading, hint, height=TEXT_HEIGHT, wrap=TEXT_WRAP):
+def show_instruction_space(heading, hint, height=TEXT_HEIGHT, wrap=TEXT_WRAP, start_key=None, end_key=None):
     # Same idea as the group/condition screens: the heading stays prominent,
     # the "press space to continue" hint is small and italic at the bottom.
     clear_keyboard()
+    if start_key:
+        send_event(start_key, send_lsl=True, send_ttl=False)
     while True:
         check_escape()
         draw_text(heading, height=height, wrap=wrap, pos=(0, 80))
@@ -560,13 +606,19 @@ def show_instruction_space(heading, hint, height=TEXT_HEIGHT, wrap=TEXT_WRAP):
             safe_quit()
         if any(k.name == "space" for k in keys):
             break
+    if end_key:
+        send_event(end_key, send_lsl=True, send_ttl=False)
 
-def show_text_timed(text, seconds, height=TEXT_HEIGHT, wrap=TEXT_WRAP):
+def show_text_timed(text, seconds, height=TEXT_HEIGHT, wrap=TEXT_WRAP, start_key=None, end_key=None):
+    if start_key:
+        send_event(start_key, send_lsl=True, send_ttl=False)
     t_end = core.getTime() + seconds
     while core.getTime() < t_end:
         check_escape()
         draw_text(text, height=height, wrap=wrap)
         win.flip()
+    if end_key:
+        send_event(end_key, send_lsl=True, send_ttl=False)
 
 def show_baseline(seconds, send_markers=False, start_key="BASELINE_START", end_key="BASELINE_END"):
     if send_markers:
@@ -585,6 +637,8 @@ def show_resting_state():
     show_instruction_space(
         TEXTS[language]["resting_state_heading"],
         TEXTS[language]["resting_state_hint"],
+        start_key="RESTING_STATE_INSTR_START",
+        end_key="RESTING_STATE_INSTR_END",
     )
     show_baseline(
         DURATION_RESTING_STATE,
@@ -592,22 +646,29 @@ def show_resting_state():
         start_key="RESTING_STATE_START",
         end_key="RESTING_STATE_END",
     )
-    show_text_timed(TEXTS[language]["task_start"], seconds=DURATION_TASK_START_MSG, height=TEXT_HEIGHT, wrap=TEXT_WRAP)
+    show_text_timed(
+        TEXTS[language]["task_start"], seconds=DURATION_TASK_START_MSG, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+        start_key="TASK_START_MSG_START", end_key="TASK_START_MSG_END",
+    )
 
 def show_end_of_block_screen(block_idx):
     txt = TEXTS[language]["break"].format(block_idx + 1, NUM_BLOCKS_PPS)
-    show_text_timed(txt, seconds=DURATION_END_BLOCK, height=28, wrap=TEXT_WRAP)
+    show_text_timed(txt, seconds=DURATION_END_BLOCK, height=28, wrap=TEXT_WRAP,
+                     start_key="BLOCK_BREAK_START", end_key="BLOCK_BREAK_END")
 
 def show_feedback(ans, real, err):
     fb_txt = TEXTS[language]["feedback_template"].format(ans=ans, real=real, err=err)
-    show_text_timed(fb_txt, seconds=DURATION_FEEDBACK, height=22, wrap=TEXT_WRAP)
+    show_text_timed(fb_txt, seconds=DURATION_FEEDBACK, height=22, wrap=TEXT_WRAP,
+                     start_key="FEEDBACK_START", end_key="FEEDBACK_END")
 
 def show_ipad_pheno():
-    show_text_space(TEXTS[language]["ipad_pheno"], height=TEXT_HEIGHT, wrap=TEXT_WRAP)
+    show_text_space(TEXTS[language]["ipad_pheno"], height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+                     start_key="IPAD_PHENO_START", end_key="IPAD_PHENO_END")
 
 def show_after_break():
     key_name = "after_break_V" if condition_task == "V" else "after_break_M"
-    show_text_timed(TEXTS[language][key_name], seconds=DURATION_AFTER_BREAK, height=TEXT_HEIGHT, wrap=TEXT_WRAP)
+    show_text_timed(TEXTS[language][key_name], seconds=DURATION_AFTER_BREAK, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+                     start_key="AFTER_BREAK_START", end_key="AFTER_BREAK_END")
 
 # ============================================================
 # INPUT HELPERS
@@ -622,11 +683,13 @@ def collect_single_choice(valid_keys):
             if k.name in valid_keys:
                 return k.name
 
-def select_single_key(heading, hint, valid_keys):
+def select_single_key(heading, hint, valid_keys, start_key=None, end_key=None):
     # Show the picked key on screen and wait for space bar to confirm
     # (backspace clears the current choice so it can be re-picked).
     chosen = ""
     clear_keyboard()
+    if start_key:
+        send_event(start_key, send_lsl=True, send_ttl=False)
 
     while True:
         check_escape()
@@ -644,15 +707,19 @@ def select_single_key(heading, hint, valid_keys):
             elif k.name in valid_keys and chosen == "":
                 chosen = k.name.upper()
             elif k.name == "space" and chosen != "":
+                if end_key:
+                    send_event(end_key, send_lsl=True, send_ttl=False)
                 return chosen
 
 LETTER_KEYS = list("abcdefghijklmnopqrstuvwxyz")
 
-def collect_text_input(heading, hint, max_chars=10):
+def collect_text_input(heading, hint, max_chars=10, start_key=None, end_key=None):
     # Accepts digits and letters (e.g. participant IDs like "12" or "P03").
     typed = ""
     clear_keyboard()
     digit_keys = [str(i) for i in range(10)] + [f"num_{i}" for i in range(10)]
+    if start_key:
+        send_event(start_key, send_lsl=True, send_ttl=False)
 
     while True:
         check_escape()
@@ -669,6 +736,8 @@ def collect_text_input(heading, hint, max_chars=10):
             if name == "escape":
                 safe_quit()
             elif name == "space" and typed != "":
+                if end_key:
+                    send_event(end_key, send_lsl=True, send_ttl=False)
                 return typed
             elif name == "backspace":
                 typed = typed[:-1]
@@ -916,6 +985,7 @@ def run_trial(condition_trial, block_idx, trial_idx, vigilance_task=None):
 def ask_strawberry_question(real_count):
     typed = ""
     clear_keyboard()
+    send_event("STRAWBERRY_QUESTION_START", send_lsl=True, send_ttl=False)
 
     while True:
         check_escape()
@@ -937,6 +1007,7 @@ def ask_strawberry_question(real_count):
             elif name == "space" and typed != "":
                 ans_n = int(typed)
                 err = ans_n - real_count
+                send_event("STRAWBERRY_QUESTION_END", send_lsl=True, send_ttl=False)
                 return ans_n, err
             elif name == "backspace":
                 typed = typed[:-1]
@@ -947,6 +1018,7 @@ def ask_strawberry_question(real_count):
 
 # ============================================================
 # LANGUAGE SELECTION
+send_event("LANG_SELECT_START", send_lsl=True, send_ttl=False)
 while True:
     check_escape()
     draw_text(TEXTS["fr"]["lang_select"], height=TEXT_HEIGHT, wrap=TEXT_WRAP)
@@ -976,6 +1048,7 @@ pp_id = collect_text_input(
     TEXTS[language]["participant_heading"],
     TEXTS[language]["participant_hint"],
     max_chars=10,
+    start_key="PARTICIPANT_ID_START",
 )
 print(f"Participant ID: {pp_id}")
 
@@ -985,15 +1058,13 @@ condition_task = select_single_key(
     TEXTS[language]["condition_heading"],
     TEXTS[language]["condition_hint"],
     ["m", "v"],
+    start_key="CONDITION_SELECT_START",
 )
 print(f"Condition: {condition_task}")
 
 # ============================================================
-# INITIALIZATION of LOG + LSL + MMBT
+# SESSION TIMESTAMP (for log filenames)
 session_dt = now_str()
-
-setup_lsl()
-setup_mmbt()
 
 # ============================================================
 # MAIN LOOP
@@ -1020,11 +1091,16 @@ def run_condition_task(cond, is_first=False):
     vigilance_task = VigilanceTaskContinuous(win) if condition_task == "V" else None
     all_blocks = build_experiment()
 
-    instruction_key = "consigne_V" if condition_task == "V" else "consigne_M"
-    show_instruction_space(TEXTS[language][instruction_key], TEXTS[language]["consigne_hint"])
-
     if is_first:
         show_resting_state()
+
+    instruction_key = "consigne_V" if condition_task == "V" else "consigne_M"
+    consigne_start_key = "CONSIGNE_V_START" if condition_task == "V" else "CONSIGNE_M_START"
+    consigne_end_key = "CONSIGNE_V_END" if condition_task == "V" else "CONSIGNE_M_END"
+    show_instruction_space(
+        TEXTS[language][instruction_key], TEXTS[language]["consigne_hint"],
+        start_key=consigne_start_key, end_key=consigne_end_key,
+    )
 
     send_event("EXP_START", send_lsl=True, send_ttl=False)
     show_baseline(DURATION_BASELINE, send_markers=True)
@@ -1111,7 +1187,10 @@ try:
     # Transition screen
     label_1 = condition_task_labels[cond_1][language]
     label_2 = condition_task_labels[cond_2][language]
-    show_text_space(TEXTS[language]["transition"].format(label_1, label_2))
+    show_text_space(
+        TEXTS[language]["transition"].format(label_1, label_2),
+        start_key="TRANSITION_START", end_key="TRANSITION_END",
+    )
 
     run_condition_task(cond_2)
 
@@ -1120,9 +1199,11 @@ finally:
 
 # ============================================================
 # END SCREEN
+send_event("END_SCREEN_START", send_lsl=True, send_ttl=False)
 draw_text(TEXTS[language]["end"], height=24, wrap=TEXT_WRAP)
 win.flip()
 core.wait(3)
+send_event("END_SCREEN_END", send_lsl=True, send_ttl=False)
 
 print("\nExperiment finished.")
 win.close()
