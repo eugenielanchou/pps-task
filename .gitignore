@@ -1,6 +1,7 @@
 *.pyc
 *.pyo
 __pycache__/
+.venv/
 config_local.py
 
 # generated on every run (random noise, not real source assets)

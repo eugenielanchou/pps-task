@@ -30,6 +30,7 @@ Pendant les deux conditions, les stimulations PPS (auditives/tactiles, proches/l
 
 - **Code et commentaires en anglais** : le code doit être compréhensible et réutilisable par d'autres chercheurs.
 - **Communication avec moi en français** : merci d'échanger avec moi en français dans les réponses, même si le code reste en anglais.
+- **Pas d'emoji dans le code** : aucun emoji dans les print/logs/commentaires du code.
 
 ## Conventions établies dans pps-task.py (à respecter pour la suite)
 
@@ -43,6 +44,22 @@ Pendant les deux conditions, les stimulations PPS (auditives/tactiles, proches/l
 ## À faire
 
 Avant toute chose, lire [ToDo.md](ToDo.md) (alimenté via le skill `/todo`) pour voir ce qu'Eugénie a prévu pour la prochaine session, et le signaler en début de conversation.
+
+## Préférences pour `/memory`
+
+Quand tu utilises le skill `/memory` pour résumer une session :
+- Inclure le travail substantiel (découvertes, bugs trouvés, décisions importantes)
+- **NE PAS inclure** : les todos qu'on a ajoutés, les modifications apportées à CLAUDE.md (ces métadonnées administratives ne font pas partie du "travail réel")
+
+## LSL Setup (ordre d'exécution)
+
+Pour chaque passation, respecter cet ordre :
+1. Lance **gNEEDaccess** (C:\LSL\gNEEDaccess\gNEEDaccess.exe) → configure et vérifie impédances EEG
+2. Lance **LabRecorder** en enregistrement (C:\LSL\LabRecorder\...\LabRecorder.exe) → sélectionne tous les streams, clique "Record"
+3. Lance **pps-task.py** → envoie les markers via LSL
+4. Arrête LabRecorder quand c'est fini → génère le .xdf dans CurrentStudy/
+
+Les fichiers sont organisés en BIDS : CurrentStudy/sub-P{N}/ses-S001/eeg/*.xdf
 
 ## À surveiller
 
