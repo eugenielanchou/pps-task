@@ -1,9 +1,5 @@
 # CLAUDE.md
 
-## Qui je suis
-
-Je suis Eugénie. Je suis en thèse de neurosciences cognitives au CRNL (Centre de Recherche en Neurosciences de Lyon), encadrée par Antoine Lutz. Je suis également co-supervisée à l'EPFL par Olaf Blanke.
-
 ## Contexte du projet
 
 Je développe une tâche d'espace péripersonnel (PPS, peripersonal space). Le projet s'inspire de l'article **Bertoni et al., 2026**, publié récemment, dans lequel les auteurs ont fait passer une tâche PPS à des patients présentant des troubles de la conscience ainsi qu'à des participants endormis. Il s'agit d'un PPS qui ne nécessite pas de réponse motrice (pas de report comportemental), uniquement un marquage EEG via les triggers.
@@ -35,11 +31,10 @@ Pendant les deux conditions, les stimulations PPS (auditives/tactiles, proches/l
 ## Conventions établies dans pps-task.py (à respecter pour la suite)
 
 - **Réglages spécifiques à la machine** (nom du périphérique audio, port COM du MMBT-S) : ne jamais les coder en dur dans `pps-task.py`. Ils vivent dans `config_local.py` (non suivi par git) ; `config_local.example.py` (suivi par git) sert de modèle avec les instructions pour les retrouver sur une nouvelle machine.
-- **Nommage `condition_task` vs `condition_trial`** : `condition_task` = M (méditation) ou V (vigilance), au niveau de la session. `condition_trial` = T/AN/AF/ANT/AFT/P3A, au niveau de l'essai PPS. Ne pas réutiliser le nom générique `condition` pour l'un ou l'autre, ça avait créé un vrai bug de log (la colonne `condition` du CSV essai-par-essai enregistrait le mauvais niveau d'information).
-- **Placement des enceintes** : "near" (AN/ANT) sort sur le canal droit, "far" (AF/AFT) sur le canal gauche → enceinte droite devant/proche du participant, enceinte gauche derrière/loin.
-- **Groupe E/C** : E = méditant expert, C = contrôle. Saisi par l'expérimentateur, jamais explicité à l'écran pour le participant.
-- **Pattern d'interface pour les écrans de saisie/consignes** (groupe, condition, numéro participant, resting state, consignes M/V) : titre clair et grand en haut, aide en petit et en italique en bas via `draw_hint()` / `show_instruction_space()` / `select_single_key()`. Garder cette cohérence pour tout nouvel écran.
-- **Resting state** : 2 minutes de fixation de croix, une seule fois par session, juste **avant** la consigne de la première condition choisie (pas répété pour la deuxième condition).
+
+## Guide de passation
+
+Consulte [steps.md](steps.md) pour le guide complet de passation avec LSL : ordre d'exécution (gNEEDaccess → LabRecorder → pps-task.py), commandes PowerShell, checklist, et troubleshooting.
 
 ## À faire
 
@@ -48,18 +43,14 @@ Avant toute chose, lire [ToDo.md](ToDo.md) (alimenté via le skill `/todo`) pour
 ## Préférences pour `/memory`
 
 Quand tu utilises le skill `/memory` pour résumer une session :
-- Inclure le travail substantiel (découvertes, bugs trouvés, décisions importantes)
+- Inclure le travail fait en résumé.
 - **NE PAS inclure** : les todos qu'on a ajoutés, les modifications apportées à CLAUDE.md (ces métadonnées administratives ne font pas partie du "travail réel")
 
-## LSL Setup (ordre d'exécution)
+## Environnement local
 
-Pour chaque passation, respecter cet ordre :
-1. Lance **gNEEDaccess** (C:\LSL\gNEEDaccess\gNEEDaccess.exe) → configure et vérifie impédances EEG
-2. Lance **LabRecorder** en enregistrement (C:\LSL\LabRecorder\...\LabRecorder.exe) → sélectionne tous les streams, clique "Record"
-3. Lance **pps-task.py** → envoie les markers via LSL
-4. Arrête LabRecorder quand c'est fini → génère le .xdf dans CurrentStudy/
+- **gNEEDaccess** et **LabRecorder** : déjà installés dans `C:\LSL\`
+- j'ai la g.tec suite 2024 comme licence. 
 
-Les fichiers sont organisés en BIDS : CurrentStudy/sub-P{N}/ses-S001/eeg/*.xdf
 
 ## À surveiller
 
