@@ -26,7 +26,7 @@ except ImportError:
 prefs.hardware["audioLib"] = ["sounddevice"]
 prefs.hardware["audioDevice"] = [AUDIO_DEVICE_NAME]
 
-from psychopy import core, visual, sound
+from psychopy import core, visual, sound, event
 from psychopy.hardware import keyboard
 
 # ============================================================
@@ -62,8 +62,8 @@ EXTRA_CONDITION = "P3A"
 DURATION_AUDIO = 0.100
 ISI_VALUES_PPS = [2.5, 2.6, 2.7, 2.8, 2.9, 3.0]
 
-DURATION_FRUIT = 3.5
-ISI_FRUIT = 0.3
+DURATION_FRUIT = 2.0
+ISI_FRUIT = 0.2
 
 DURATION_END_BLOCK = 1.0
 DURATION_AFTER_BREAK = 30.0
@@ -154,11 +154,30 @@ TEXTS = {
         "participant_hint": "Tapez le numéro ou code, puis appuyez sur la barre d'espace pour avancer.",
         "condition_heading": "La condition :",
         "condition_hint": "Appuyez sur M ou V, puis sur la barre d'espace pour avancer.",
-        "resting_state_heading": "Nous allons d'abord enregistrer une période de repos.\n\nFixez la croix de fixation pendant 2 minutes, sans bouger.",
+        "resting_state_heading": "Nous allons d'abord enregistrer une période de repos pendant 2 minutes.\n\nVeuillez simplement fixer la croix qui va apparaître à l'écran, sans bouger.",
         "resting_state_hint": "Quand vous êtes prêt(e), appuyez sur la barre d'espace pour commencer.",
-        "task_start": "La tâche va maintenant commencer.",
+        "thank_you": "Merci !",
+        "task_about_to_start": "La tâche va bientôt commencer.",
+        "famil_intro": "Durant cette expérience, vous allez entendre des sons provenant des deux haut-parleurs situés devant vous et ressentir une légère stimulation au niveau du torse.\n\n\nNous allons commencer par vous familiariser avec ces sensations.",
+        "famil_intro_hint": "Appuyez sur la barre d'espace pour essayer.",
+        "famil_near_sound": "Vous allez entendre le son PROCHE.",
+        "famil_near_sound_hint": "Appuyez sur la barre d'espace pour l'écouter.",
+        "famil_far_sound": "Vous allez entendre le son LOIN.",
+        "famil_far_sound_hint": "Appuyez sur la barre d'espace pour l'écouter.",
+        "famil_tactile": "Vous allez sentir la stimulation tactile.",
+        "famil_tactile_hint": "Appuyez sur la barre d'espace pour le sentir.",
+        "famil_repeat_question": "Voulez-vous écouter à nouveau la différence ?",
+        "calibration_heading": "Calibration auditive",
+        "calibration_instruction": "Le son va être présenté plusieurs fois.\n\nVous devrez indiquer si vous avez entendu un son ou non.",
+        "calibration_instruction_hint": "Appuyez sur la barre d'espace quand vous êtes prêt(e).",
+        "calibration_trial": "Avez-vous entendu un son ?",
+        "calibration_yes": "OUI",
+        "calibration_no": "NON",
+        "calibration_summary": "Calibration terminée.\n\nMerci !",
+        "famil_repeat_question_tactile": "Voulez-vous réessayer ?",
+        "famil_repeat_yes_no": "Oui ou Non : appuyez sur O ou N, puis barre d'espace.",
         "consigne_M": "Vous allez d'abord entendre des audios de méditation.\nVeuillez rester dans cet état tout au long de la séquence.\n\nPendant ce temps, vous entendrez des sons provenant des deux haut-parleurs situés devant vous\net percevrez une légère stimulation au niveau de votre torse.\n\nMerci de rester aussi immobile que possible, en fixant la croix.",
-        "consigne_V": "Vous allez voir des fruits défiler.\nVeuillez compter le nombre de FRAISES.\n\nEn même temps, vous allez entendre des sons depuis les deux haut-parleurs devant vous\net percevoir une petite stimulation au niveau de votre torse.\n\nRestez aussi immobile que possible.",
+        "consigne_V": "Voici les consignes de l'expérience :\n\nDurant cette partie, il ne faudra PAS méditer. Pour vous aider à rester vigilant et éviter une méditation automatique, nous vous proposons une petite mission :\n\nVous allez voir des fruits défiler à l'écran. Veuillez compter mentalement le nombre de FRAISES qui apparaissent.",
         "consigne_hint": "Quand vous êtes prêt(e), appuyez sur la barre d'espace pour commencer.",
         "break": "Fin du bloc {}/{}",
         "question": "Combien de fraises avez-vous vues ?\n\nAppuyez sur la barre d'espace pour valider.",
@@ -177,11 +196,30 @@ TEXTS = {
         "participant_hint": "Type the number or code, then press the space bar to continue.",
         "condition_heading": "Condition:",
         "condition_hint": "Press M or V, then press the space bar to continue.",
-        "resting_state_heading": "We will first record a resting-state period.\n\nFixate the cross for 2 minutes, without moving.",
+        "resting_state_heading": "We will first record a resting-state period for 2 minutes.\n\nPlease simply fixate on the cross that will appear on the screen, without moving.",
         "resting_state_hint": "When you are ready, press the space bar to begin.",
-        "task_start": "The task will now begin.",
+        "thank_you": "Thank you!",
+        "task_about_to_start": "The task will begin soon.",
+        "famil_intro": "During this experiment, you will hear sounds from the two loudspeakers in front of you and feel a brief stimulation on your chest.\n\n\nWe will start by familiarizing you with these sensations.",
+        "famil_intro_hint": "Press the space bar to try.",
+        "famil_near_sound": "You will hear the NEAR sound.",
+        "famil_near_sound_hint": "Press the space bar to listen.",
+        "famil_far_sound": "You will hear the FAR sound.",
+        "famil_far_sound_hint": "Press the space bar to listen.",
+        "famil_tactile": "You will feel the tactile stimulation.",
+        "famil_tactile_hint": "Press the space bar to feel it.",
+        "famil_repeat_question": "Would you like to hear the difference again?",
+        "calibration_heading": "Auditory calibration",
+        "calibration_instruction": "The sound will be presented several times.\n\nYou will need to indicate whether you heard a sound or not.",
+        "calibration_instruction_hint": "Press the space bar when you are ready.",
+        "calibration_trial": "Did you hear a sound?",
+        "calibration_yes": "YES",
+        "calibration_no": "NO",
+        "calibration_summary": "Calibration complete.\n\nThank you!",
+        "famil_repeat_question_tactile": "Would you like to try again?",
+        "famil_repeat_yes_no": "Yes or No: press Y or N, then space bar.",
         "consigne_M": "You will first hear meditation audio recordings.\nPlease remain in this state throughout the sequence.\n\nDuring this time, you will hear sounds coming from the two loudspeakers in front of you\nand feel a brief stimulation on your chest.\n\nPlease remain as still as possible while fixating the cross.",
-        "consigne_V": "You will see fruits appearing on the screen.\nPlease count the number of STRAWBERRIES.\n\nAt the same time, you will hear sounds coming from the two loudspeakers in front of you\nand feel a brief stimulation on your chest.\n\nPlease remain as still as possible.",
+        "consigne_V": "Here are the experiment instructions:\n\nFor this part, you must NOT meditate. To help you stay vigilant and avoid automatic meditation, we have a small task for you:\n\nYou will see fruits appearing on the screen. Please count mentally the number of STRAWBERRIES that appear.",
         "consigne_hint": "When you are ready, press the space bar to begin.",
         "break": "End of block {}/{}",
         "question": "How many strawberries did you see?\n\nPress the space bar to validate.",
@@ -441,17 +479,20 @@ def make_audio_files():
     noise_right_path = os.path.join(AUDIO_DIR, "noise_right.wav")
     noise_left_path = os.path.join(AUDIO_DIR, "noise_left.wav")
     tone_p3a_path = os.path.join(AUDIO_DIR, "tone_p3a.wav")
+    calibration_path = os.path.join(AUDIO_DIR, "calibration_noise.wav")
 
     write_wav_file(noise_right_path, generate_white_noise_array(pan="right"))
     write_wav_file(noise_left_path, generate_white_noise_array(pan="left"))
     write_wav_file(tone_p3a_path, generate_tone_array())
+    write_wav_file(calibration_path, generate_white_noise_array(duration=5.0, pan="both"))
 
-    return noise_right_path, noise_left_path, tone_p3a_path
+    return noise_right_path, noise_left_path, tone_p3a_path, calibration_path
 
-NOISE_RIGHT_PATH, NOISE_LEFT_PATH, TONE_P3A_PATH = make_audio_files()
+NOISE_RIGHT_PATH, NOISE_LEFT_PATH, TONE_P3A_PATH, CALIBRATION_NOISE_PATH = make_audio_files()
 NOISE_RIGHT = sound.Sound(NOISE_RIGHT_PATH)
 NOISE_LEFT = sound.Sound(NOISE_LEFT_PATH)
 TONE_P3A = sound.Sound(TONE_P3A_PATH)
+CALIBRATION_NOISE = sound.Sound(CALIBRATION_NOISE_PATH)
 
 def play_sound_obj(sound_obj):
     # Stop first to avoid overlap from previous trial
@@ -647,7 +688,7 @@ def show_resting_state():
         end_key="RESTING_STATE_END",
     )
     show_text_timed(
-        TEXTS[language]["task_start"], seconds=DURATION_TASK_START_MSG, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+        TEXTS[language]["thank_you"], seconds=DURATION_TASK_START_MSG, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
         start_key="TASK_START_MSG_START", end_key="TASK_START_MSG_END",
     )
 
@@ -669,6 +710,143 @@ def show_after_break():
     key_name = "after_break_V" if condition_task == "V" else "after_break_M"
     show_text_timed(TEXTS[language][key_name], seconds=DURATION_AFTER_BREAK, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
                      start_key="AFTER_BREAK_START", end_key="AFTER_BREAK_END")
+
+def ask_yes_no_question(question_key="famil_repeat_question"):
+    chosen = ""
+    clear_keyboard()
+    while True:
+        check_escape()
+        draw_text(TEXTS[language][question_key], height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 60))
+        draw_text(chosen if chosen else "_", height=48, wrap=TEXT_WRAP, pos=(0, -40))
+        draw_hint(TEXTS[language]["famil_repeat_yes_no"])
+        win.flip()
+
+        valid_keys = ["o", "n"] if language == "fr" else ["y", "n"]
+        keys = get_keys(valid_keys + ["space", "escape"])
+        for k in keys:
+            if k.name == "escape":
+                safe_quit()
+            elif k.name in valid_keys and chosen == "":
+                chosen = k.name.upper()
+            elif k.name == "space" and chosen != "":
+                return chosen.lower() == ("o" if language == "fr" else "y")
+
+def show_stimulus_familiarization():
+    show_instruction_space(
+        TEXTS[language]["famil_intro"],
+        TEXTS[language]["famil_intro_hint"],
+    )
+
+    while True:
+        show_instruction_space(
+            TEXTS[language]["famil_near_sound"],
+            TEXTS[language]["famil_near_sound_hint"],
+        )
+        play_sound_obj(NOISE_RIGHT)
+        core.wait(DURATION_AUDIO + 0.2)
+        stop_all_sounds()
+
+        show_instruction_space(
+            TEXTS[language]["famil_far_sound"],
+            TEXTS[language]["famil_far_sound_hint"],
+        )
+        play_sound_obj(NOISE_LEFT)
+        core.wait(DURATION_AUDIO + 0.2)
+        stop_all_sounds()
+
+        if not ask_yes_no_question():
+            break
+
+    while True:
+        show_instruction_space(
+            TEXTS[language]["famil_tactile"],
+            TEXTS[language]["famil_tactile_hint"],
+        )
+        send_mmbt_ttl()
+        core.wait(0.5)
+
+        if not ask_yes_no_question(question_key="famil_repeat_question_tactile"):
+            break
+
+def show_calibration_psychophysical():
+    NUM_TRIALS = 20
+    CATCH_TRIAL_PROB = 0.25
+
+    show_instruction_space(
+        TEXTS[language]["calibration_heading"] + "\n\n" + TEXTS[language]["calibration_instruction"],
+        TEXTS[language]["calibration_instruction_hint"],
+        height=TEXT_HEIGHT,
+        wrap=TEXT_WRAP,
+    )
+
+    mouse_obj = event.Mouse(win=win, visible=True)
+
+    yes_button = visual.Rect(win, width=150, height=80, pos=(-150, -150), fillColor="gray", opacity=0.7)
+    no_button = visual.Rect(win, width=150, height=80, pos=(150, -150), fillColor="gray", opacity=0.7)
+    yes_text = visual.TextStim(win, text=TEXTS[language]["calibration_yes"], pos=(-150, -150), height=28, color="white", bold=True)
+    no_text = visual.TextStim(win, text=TEXTS[language]["calibration_no"], pos=(150, -150), height=28, color="white", bold=True)
+    sound_indicator = visual.TextStim(win, text="Son", pos=(0, 100), height=40, color="yellow", bold=True)
+    question = visual.TextStim(win, text=TEXTS[language]["calibration_trial"], pos=(0, 0), height=32, color="white")
+
+    calibration_done = False
+    trial_idx = 0
+
+    while not calibration_done:
+        is_catch_trial = random.random() < CATCH_TRIAL_PROB
+
+        sound_indicator.draw()
+        win.flip()
+        core.wait(0.5)
+
+        if not is_catch_trial:
+            play_sound_obj(NOISE_RIGHT)
+            core.wait(DURATION_AUDIO + 0.1)
+            stop_all_sounds()
+        else:
+            core.wait(DURATION_AUDIO + 0.1)
+
+        core.wait(0.5)
+
+        answered = False
+        while not answered:
+            check_escape()
+            question.draw()
+            yes_button.draw()
+            no_button.draw()
+            yes_text.draw()
+            no_text.draw()
+            win.flip()
+
+            if yes_button.contains(mouse_obj):
+                if mouse_obj.getPressed()[0]:
+                    answered = True
+                    core.wait(0.3)
+            elif no_button.contains(mouse_obj):
+                if mouse_obj.getPressed()[0]:
+                    answered = True
+                    core.wait(0.3)
+
+        t_end = core.getTime() + 4.0
+        while core.getTime() < t_end:
+            check_escape()
+            draw_fixation_only()
+            win.flip()
+
+            keys = get_keys(["space", "escape"])
+            if any(k.name == "escape" for k in keys):
+                safe_quit()
+            if any(k.name == "space" for k in keys):
+                calibration_done = True
+                break
+
+    mouse_obj.setVisible(False)
+
+    show_text_timed(
+        TEXTS[language]["calibration_summary"],
+        seconds=2.0,
+        height=TEXT_HEIGHT,
+        wrap=TEXT_WRAP,
+    )
 
 # ============================================================
 # INPUT HELPERS
@@ -772,7 +950,7 @@ def build_block():
     if min_consecutive > 0:
         print(f"Block has {min_consecutive} consecutive pair(s).")
 
-    p3a_pos = random.randint(20, len(best_trials))
+    p3a_pos = random.randint(14, len(best_trials))
     best_trials.insert(p3a_pos, EXTRA_CONDITION)
     return best_trials
 
@@ -1053,6 +1231,14 @@ pp_id = collect_text_input(
 print(f"Participant ID: {pp_id}")
 
 # ============================================================
+# STIMULUS FAMILIARIZATION
+show_stimulus_familiarization()
+
+# ============================================================
+# AUDIO CALIBRATION
+show_calibration_psychophysical()
+
+# ============================================================
 # CONDITION SELECTION (M = meditation, V = vigilance)
 condition_task = select_single_key(
     TEXTS[language]["condition_heading"],
@@ -1091,9 +1277,6 @@ def run_condition_task(cond, is_first=False):
     vigilance_task = VigilanceTaskContinuous(win) if condition_task == "V" else None
     all_blocks = build_experiment()
 
-    if is_first:
-        show_resting_state()
-
     instruction_key = "consigne_V" if condition_task == "V" else "consigne_M"
     consigne_start_key = "CONSIGNE_V_START" if condition_task == "V" else "CONSIGNE_M_START"
     consigne_end_key = "CONSIGNE_V_END" if condition_task == "V" else "CONSIGNE_M_END"
@@ -1101,6 +1284,13 @@ def run_condition_task(cond, is_first=False):
         TEXTS[language][instruction_key], TEXTS[language]["consigne_hint"],
         start_key=consigne_start_key, end_key=consigne_end_key,
     )
+
+    show_text_timed(
+        TEXTS[language]["task_about_to_start"], seconds=DURATION_TASK_START_MSG, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+    )
+
+    if is_first:
+        show_resting_state()
 
     send_event("EXP_START", send_lsl=True, send_ttl=False)
     show_baseline(DURATION_BASELINE, send_markers=True)

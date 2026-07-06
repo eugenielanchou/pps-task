@@ -27,10 +27,32 @@ Pendant les deux conditions, les stimulations PPS (auditives/tactiles, proches/l
 - **Code et commentaires en anglais** : le code doit être compréhensible et réutilisable par d'autres chercheurs.
 - **Communication avec moi en français** : merci d'échanger avec moi en français dans les réponses, même si le code reste en anglais.
 - **Pas d'emoji dans le code** : aucun emoji dans les print/logs/commentaires du code.
+- **Textes bilingues** : dès que tu reçois une consigne de modification de texte en français (TEXTS dict), applique-la automatiquement dans les deux langues en traduisant l'anglais correspondant. Ne demande pas de confirmation.
 
 ## Conventions établies dans pps-task.py (à respecter pour la suite)
 
 - **Réglages spécifiques à la machine** (nom du périphérique audio, port COM du MMBT-S) : ne jamais les coder en dur dans `pps-task.py`. Ils vivent dans `config_local.py` (non suivi par git) ; `config_local.example.py` (suivi par git) sert de modèle avec les instructions pour les retrouver sur une nouvelle machine.
+
+## Guide de calibration auditive
+
+La calibration auditive détermine le seuil de détection auditif du participant (niveau minimal où il entend le son). **L'expérimentateur contrôle le volume de l'ampli physique**.
+
+**Protocole :**
+1. Commencer à **volume très bas** (quasi inaudible)
+2. **Augmenter progressivement de +2 à +5 dB** par essai (petit tour de volume sur l'ampli)
+3. Quand le participant dit **"OUI"** plusieurs fois → seuil approximatif trouvé
+4. **Descendre progressivement** (-2 à -5 dB) pour affiner
+5. Quand il dit **"NON"** à nouveau → seuil précisé
+6. **Appuyer sur la barre d'espace** pour terminer la calibration (pas d'affichage à l'écran, juste pour vous)
+7. Prendre notes des niveaux de volume testés
+
+**Vérification de fiabilité (tous les 5 essais) :**
+- Essai 5, 10, 15, 20... : **NE PAS changer le volume** (garder le même niveau)
+- Vérifier que le participant donne la **même réponse** qu'à l'essai précédent
+- Cela contrôle la cohérence et la fiabilité des réponses (pas de réponses aléatoires)
+- Vous comptez mentalement, le participant ne doit rien remarquer
+
+Le nombre d'essais varie selon le participant (pas de limite fixe).
 
 ## Guide de passation
 
