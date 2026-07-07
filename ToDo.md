@@ -2,11 +2,16 @@
 (entrées les plus récentes en premier — utiliser le skill `/todo` pour en ajouter)
 
 ## 2026-07-07
-- [ ] Rajouter la partie avec TR
+- [x] Rajouter la partie avec TR (bloc entièrement fonctionnel!)
 - [x] Trigger fraises
 - [x] Amélioration des consignes.
+- [x] Phase d'entraînement RT avec répétition possible (O/N)
+- [x] Sons proches/lointains dans entraînement ET bloc principal
 - [ ] Revoir tous les triggers
-- [ ] Changer la stimulation du digitimer pour la vibration 
+- [ ] Changer la stimulation du digitimer pour la vibration
+- [ ] Vérifier tous les logs (RT, PPS): colonnes, formats, timestamps
+- [ ] Tester si on a bien LSL
+- [ ] Essayer avec la stim tactile et audio 
 
 ## 2026-06-24
 - [ ] Installer et tester App-SigVisualizer comme alternative à stream_live.py pour monitoring LSL en temps réel.

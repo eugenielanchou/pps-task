@@ -144,6 +144,9 @@ TRIGGER_CODES = {
     "STRAWBERRY_QUESTION_START": 128,
     "STRAWBERRY_QUESTION_END": 129,
     "STRAWBERRY_DISPLAY": 130,
+    "RT_BLOCK_START": 131,
+    "RT_BLOCK_END": 132,
+    "RT_RESPONSE": 133,
 }
 
 # ============================================================
@@ -159,6 +162,8 @@ TEXTS = {
         "group_hint": "Appuyez sur E ou C, puis sur la barre d'espace.",
         "condition_heading": "La condition :",
         "condition_hint": "Appuyez sur M ou V, puis sur la barre d'espace.",
+        "rt_block_position_heading": "Bloc de temps de réaction :",
+        "rt_block_position_hint": "Appuyez sur B (avant) ou A (après), puis sur la barre d'espace.",
 
         # ===== CALIBRATION & FAMILIARIZATION =====
         "calibration_intro": "Pendant cette expérience, vous allez entendre des sons provenant des deux haut-parleurs situés devant vous.\n\n\nNous allons commencer par une phase de calibration auditive.",
@@ -181,8 +186,20 @@ TEXTS = {
         "famil_repeat_question_tactile": "Voulez-vous réessayer ?",
         "famil_repeat_yes_no": "Oui ou Non : appuyez sur O ou N, puis barre d'espace.",
 
-        "consigne_stimuli": "Durant l'expérience ce sont exactement ces sons et cette vibration que vous allez percevoir. \n\nOn vous demandera uniquement de les percevoir, sans rien faire d'autre. Seul votre état mental devra changer : méditation ou non.",
+        "consigne_stimuli": "Durant l'expérience ce sont exactement ces sons et cette vibration que vous allez percevoir.",
         "consigne_stimuli_hint": "Appuyez sur la barre espace pour commencer.",
+
+        # ===== REACTION TIME BLOCK =====
+        "rt_block_intro_first": "Nous allons commencer par un petit excercice : dès que vous sentez la vibration, cliquez AUSSI RAPIDEMENT que possible sur la souris.\n\n",
+        "rt_block_intro_end": "Nous allons terminer par un petit excercice : vous allez entendre les mêmes sons et sentir la même vibration.\n\nMais, cette fois, vous devez cliquer avec la souris AUSSI RAPIDEMENT que possible quand vous ressentez la vibration.",
+        "rt_block_intro_hint": "Appuyez sur la barre d'espace pour commencer l'entrainement.",
+        "rt_practice_heading": "Phase d'entraînement",
+        "rt_practice_done": "Bien! Vous avez maintenant une idée de ce qui va se passer.",
+        "rt_practice_repeat_question": "Refaire l'entraînement ?",
+        "rt_ready": "La tache va bientot commencer.",
+        "rt_block_end": "Merci pour cette excercice.",
+        "rt_block_end_first": "Pour la suite de l'expérience, vous n'aurez pas besoin d'utiliser la souris, vous allez seulement devoir entendre les sons et ressentir la vibration, sans rien faire.",
+        "rt_block_end_first_hint": "Appuyez sur la barre d'espace quand vous avez compris.",
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
         "task_will_start": "La tâche va commencer maintenant.",
@@ -201,7 +218,8 @@ TEXTS = {
         "vigilance_practice_intro": "Vous allez faire une courte phase d'entraînement.\n\nVous entendrez les sons et ressentirez les vibrations, tandis que les fruits défileront à l'écran.\n\nCompter le nombre de FRAISES.",
         "vigilance_practice_hint": "Appuyez sur la barre d'espace pour commencer.",
         "vigilance_practice_done": "Bien! Vous avez maintenant une idée de ce qui va se passer.\n\nLe même protocole sera répété sur plusieurs blocs.",
-        "vigilance_practice_done_hint": "Appuyez sur la barre d'espace pour continuer.",
+        "vigilance_practice_repeat_question": "Voulez-vous refaire l'entraînement ?",
+        "yes_no_hint": "Oui ou Non : appuyez sur O ou N, puis barre d'espace.",
         "meditation_practice_done_hint": "Appuyez sur la barre d'espace pour continuer.",
 
         "meditation_label": "Méditation",
@@ -209,6 +227,7 @@ TEXTS = {
         "meditation_practice_intro": "Vous allez faire une courte phase d'entraînement.\n\nVous entendrez les sons et ressentirez les vibrations, tandis que vous devez fixer la croix à l'écran et rester en état de méditation.",
         "meditation_practice_hint": "Appuyez sur la barre d'espace pour commencer.",
         "meditation_practice_done": "Bien! Vous avez maintenant une idée de ce qui va se passer.\n\nLe même protocole sera répété sur plusieurs blocs.\nTentez de maintenir votre état de méditation tout au long.",
+        "meditation_practice_repeat_question": "Voulez-vous refaire l'entraînement ?",
 
         # ===== RESTING STATE & TRIALS =====
         "resting_state_heading": "Nous commençons juste par une période de repos de 2 minutes : Veuillez simplement fixer la croix qui va apparaître à l'écran, sans bouger. \n\n\La tâche commencera directement après.",
@@ -240,6 +259,8 @@ TEXTS = {
         "group_hint": "Press E or C, then press the space bar to continue.",
         "condition_heading": "Condition:",
         "condition_hint": "Press M or V, then press the space bar to continue.",
+        "rt_block_position_heading": "Reaction time block:",
+        "rt_block_position_hint": "Press B (before) or A (after), then press the space bar to continue.",
 
         # ===== CALIBRATION & FAMILIARIZATION =====
         "calibration_intro": "During this experiment, you will hear sounds from the two loudspeakers in front of you.\n\nWe will start with an auditory calibration phase.",
@@ -277,6 +298,19 @@ TEXTS = {
         "consigne_V_C_after": "We are now entering the second phase of the experiment. It will be identical, but this time we will ask you to simply stay focused on the screen.\n\nTo help you, we propose a small task: fruits will appear on the screen. Please count mentally the number of STRAWBERRIES that appear.",
         "consigne_hint": "When you are ready, press the space bar to begin.",
 
+        # ===== REACTION TIME BLOCK =====
+        "rt_block_intro_first": "We will start with a small exercise: as soon as you feel the vibration, click AS QUICKLY AS POSSIBLE on the mouse.\n\n",
+        "rt_block_intro_end": "We will now finish with a small exercise: you will hear the same sounds and feel the same vibration.\n\nBut this time, you must click the mouse AS QUICKLY AS POSSIBLE when you feel the vibration.",
+        "rt_block_intro_hint": "Press the space bar to begin the training.",
+        "rt_practice_heading": "Training phase",
+        "rt_practice_hint": "Press the space bar to begin.",
+        "rt_practice_done": "Good! You now have an idea of what will happen.",
+        "rt_practice_repeat_question": "Would you like to redo the training?",
+        "rt_ready": "The task will begin soon.",
+        "rt_block_end": "Thank you for this exercise.",
+        "rt_block_end_first": "For the rest of the experiment, you will not need to use the mouse. You will only need to hear the sounds and feel the vibration, without doing anything else.",
+        "rt_block_end_first_hint": "Press the space bar when you understand.",
+
         # ===== PRACTICE PHASES =====
         "vigilance_practice_heading": "Training phase",
         "vigilance_practice_intro": "You will now do a short training phase.\n\nYou will hear the sounds and feel the vibrations, while fruits appear on the screen.\n\nCount the number of STRAWBERRIES.",
@@ -286,9 +320,10 @@ TEXTS = {
         "meditation_practice_intro": "You will now do a short training phase.\n\nYou will hear the sounds and feel the vibrations, while you must focus on the cross on the screen and remain in a meditative state.",
         "meditation_practice_hint": "Press the space bar to begin.",
         "meditation_practice_done": "Good! You now have an idea of what will happen.\n\nThe same protocol will be repeated over several blocks.\nTry to maintain your meditative state throughout.\n\n\nWe will now start with a resting period for 2 minutes.\nPlease simply focus on the cross that will appear on the screen, without moving.",
-        "meditation_practice_done_hint": "Press the space bar to continue.",
+        "meditation_practice_repeat_question": "Would you like to redo the training?",
         "vigilance_practice_done": "Good! You now have an idea of what will happen.\n\nThe same protocol will be repeated over several blocks.\n\n\nWe will now start with a resting period for 2 minutes, then the task will begin.\nPlease simply focus on the cross that will appear on the screen, without moving.",
-        "vigilance_practice_done_hint": "Press the space bar to continue.",
+        "vigilance_practice_repeat_question": "Would you like to redo the training?",
+        "yes_no_hint": "Yes or No: press Y or N, then space bar.",
 
         # ===== RESTING STATE & TRIALS =====
         "resting_state_heading": "We will first record a resting-state period for 2 minutes.\n\nPlease simply fixate on the cross that will appear on the screen, without moving.",
@@ -329,17 +364,29 @@ TRIAL_FIELDNAMES = [
     "audio_play_call_time",
 ]
 
+RT_TRIAL_FIELDNAMES = [
+    "group", "participant_num", "language", "datetime",
+    "trial_index", "condition_trial",
+    "audio_side", "audio_present", "tactile_present",
+    "isi_sec", "stim_onset_clock", "trigger_code",
+    "lsl_sent", "ttl_sent", "lsl_time", "ttl_on_time", "ttl_off_time",
+    "audio_play_call_time", "response_time", "response_lsl_time",
+]
+
 # ============================================================
 # GLOBAL STATE VARIABLES
 marker_outlet = None
 mmbt = None
 block_log_rows = []
 trial_log_rows = []
+rt_log_rows = []
 block_log_path = None
 trial_log_path = None
+rt_log_path = None
 language = ""
-group = ""  # "E" (expert meditator) or "C" (control) 
+group = ""  # "E" (expert meditator) or "C" (control)
 condition_task = ""  # "M" = meditation, "V" = vigilance
+rt_block_position = ""  # "A" (after) or "B" (before)
 pp_id = ""
 session_dt = ""
 vigilance_task = None
@@ -640,6 +687,13 @@ def make_trial_log_filename(pp_id, group, condition_task):
         f"sub-{pp_id}_group-{group}_cond-{condition_task}_{timestamp_for_filename()}_trials.csv"
     )
 
+def make_rt_log_filename(pp_id, group):
+    ensure_data_dir()
+    return os.path.join(
+        DATA_DIR,
+        f"sub-{pp_id}_group-{group}_rt_{timestamp_for_filename()}_trials.csv"
+    )
+
 def save_logs_now():
     try:
         if block_log_path and block_log_rows:
@@ -654,6 +708,13 @@ def save_logs_now():
             print("Saved trials:", trial_log_path)
     except Exception as e:
         print("Could not save trial log:", e)
+
+    try:
+        if rt_log_path and rt_log_rows:
+            write_csv(rt_log_path, rt_log_rows, RT_TRIAL_FIELDNAMES)
+            print("Saved RT trials:", rt_log_path)
+    except Exception as e:
+        print("Could not save RT trial log:", e)
 
 # ============================================================
 # SAFE EXIT
@@ -1153,6 +1214,148 @@ def describe_trial(condition_trial):
         return True, False, "both"
     raise ValueError(f"Unknown condition_trial: {condition_trial}")
 
+def build_rt_block():
+    # Build one RT block with balanced conditions (no P3A, 110 trials)
+    rt_conditions = ["T", "AN", "AF", "ANT", "AFT"]
+    trials_per_cond = 110 // len(rt_conditions)  # 22 per condition
+    remaining = 110 % len(rt_conditions)  # 0 extra trials
+
+    trials = []
+    for cond in rt_conditions:
+        trials.extend([cond] * trials_per_cond)
+
+    # Add remaining trial(s) to the first condition(s)
+    for i in range(remaining):
+        trials.append(rt_conditions[i])
+
+    best_trials = None
+    min_consecutive = 999
+
+    for _ in range(500):
+        random.shuffle(trials)
+        consecutive_count = sum(
+            1 for i in range(1, len(trials)) if trials[i] == trials[i - 1]
+        )
+        if consecutive_count < min_consecutive:
+            min_consecutive = consecutive_count
+            best_trials = trials.copy()
+        if consecutive_count == 0:
+            break
+
+    if min_consecutive > 0:
+        print(f"RT Block has {min_consecutive} consecutive pair(s).")
+
+    return best_trials
+
+def run_rt_trial(condition_trial, trial_idx):
+    """Run one RT trial with mouse response detection for tactile stimuli."""
+    global rt_log_rows, marker_outlet
+
+    audio_present, tactile_present, audio_side = describe_trial(condition_trial)
+    stim_onset = clock.getTime()
+
+    event_info = {
+        "event_code": TRIGGER_CODES.get(condition_trial, 0),
+        "local_time": None,
+        "lsl_time": None,
+        "ttl_on_time": None,
+        "ttl_off_time": None,
+        "ttl_sent": 0,
+        "lsl_sent": 0,
+    }
+
+    audio_play_call_time = None
+    response_time = None
+    response_lsl_time = None
+
+    # Tactile only
+    if condition_trial == "T":
+        event_info = send_event(
+            condition_trial,
+            send_lsl=True,
+            send_ttl=True,
+            ttl_code=DIGITIMER_TTL_CODE
+        )
+
+    # Audio only
+    elif condition_trial in ["AN", "AF"]:
+        event_info = send_event(condition_trial, send_lsl=True, send_ttl=False)
+        audio_play_call_time = core.getTime()
+
+        if condition_trial == "AN":
+            play_sound_obj(NOISE_RIGHT)
+        elif condition_trial == "AF":
+            play_sound_obj(NOISE_LEFT)
+
+    # Audio + tactile
+    elif condition_trial in ["ANT", "AFT"]:
+        event_info = send_event(
+            condition_trial,
+            send_lsl=True,
+            send_ttl=True,
+            ttl_code=DIGITIMER_TTL_CODE
+        )
+        audio_play_call_time = core.getTime()
+
+        if condition_trial == "ANT":
+            play_sound_obj(NOISE_RIGHT)
+        elif condition_trial == "AFT":
+            play_sound_obj(NOISE_LEFT)
+
+    # Stimulus presentation window - let sound play
+    stim_offset = stim_onset + DURATION_AUDIO
+    frame_loop_until(stim_offset)
+    stop_all_sounds()
+
+    # Offset marker
+    send_event(condition_trial + "_OFF", send_lsl=True, send_ttl=False)
+
+    # Response detection window (1.5 sec after stimulus)
+    mouse = event.Mouse(win=win)
+    response_detected = False
+    response_window_end = stim_offset + 1.5
+
+    while clock.getTime() < response_window_end:
+        check_escape()
+        draw_fixation_only()
+        win.flip()
+
+        if not response_detected and tactile_present:
+            if mouse.getPressed()[0]:  # Left mouse button
+                response_time = clock.getTime() - stim_onset
+                response_lsl_time = send_lsl_marker(TRIGGER_CODES["RT_RESPONSE"])
+                response_detected = True
+
+    # Inter-stimulus interval
+    isi = random.choice(ISI_VALUES_PPS)
+    trial_end = response_window_end + isi
+    frame_loop_until(trial_end)
+
+    # Save RT trial row
+    rt_log_rows.append({
+        "participant_num": pp_id,
+        "language": language,
+        "group": group,
+        "datetime": session_dt,
+        "trial_index": trial_idx + 1,
+        "condition_trial": condition_trial,
+        "audio_side": audio_side,
+        "audio_present": int(audio_present),
+        "tactile_present": int(tactile_present),
+        "isi_sec": isi,
+        "stim_onset_clock": round(stim_onset, 6),
+        "stim_lsl_time": event_info["lsl_time"],
+        "trigger_code": event_info["event_code"],
+        "lsl_sent": event_info["lsl_sent"],
+        "ttl_sent": event_info["ttl_sent"],
+        "ttl_on_time": event_info["ttl_on_time"],
+        "ttl_off_time": event_info["ttl_off_time"],
+        "audio_play_call_time": audio_play_call_time,
+        "reaction_time_sec": round(response_time, 6) if response_time is not None else "",
+        "response_absolute_clock": round(stim_onset + response_time, 6) if response_time is not None else "",
+        "response_lsl_time": response_lsl_time,
+    })
+
 def run_trial(condition_trial, block_idx, trial_idx, vigilance_task=None):
     audio_present, tactile_present, audio_side = describe_trial(condition_trial)
     stim_onset = clock.getTime()
@@ -1326,6 +1529,15 @@ condition_task = select_single_key(
 print(f"Condition: {condition_task}")
 
 # ============================================================
+# RT BLOCK POSITION SELECTION (B = before, A = after)
+rt_block_position = select_single_key(
+    TEXTS[language]["rt_block_position_heading"],
+    TEXTS[language]["rt_block_position_hint"],
+    ["b", "a"],
+)
+print(f"RT block position: {rt_block_position}")
+
+# ============================================================
 # AUDIO CALIBRATION INTRO
 show_instruction_space(
     TEXTS[language]["calibration_intro"],
@@ -1414,37 +1626,42 @@ def run_vigilance_practice():
         TEXTS[language]["vigilance_practice_hint"],
     )
 
-    # Setup practice vigilance task
-    practice_vigilance = VigilanceTaskContinuous(win)
-    practice_vigilance.start(clock.getTime())
+    repeat_training = True
+    while repeat_training:
+        # Setup practice vigilance task
+        practice_vigilance = VigilanceTaskContinuous(win)
+        practice_vigilance.start(clock.getTime())
 
-    # Mini block with ~3 practice trials (mix of conditions)
-    practice_trials = ["AN", "T", "AF"]
-    t_end = clock.getTime() + 20.0  # 20 seconds of practice
-    trial_idx = 0
+        # Mini block with ~3 practice trials (mix of conditions)
+        practice_trials = ["AN", "T", "AF"]
+        t_end = clock.getTime() + 20.0  # 20 seconds of practice
+        trial_idx = 0
 
-    while clock.getTime() < t_end and trial_idx < len(practice_trials):
-        check_escape()
-        cond_trial = practice_trials[trial_idx]
+        while clock.getTime() < t_end and trial_idx < len(practice_trials):
+            check_escape()
+            cond_trial = practice_trials[trial_idx]
 
-        # Run trial with PPS stimulation + vigilance task
-        run_trial(cond_trial, block_idx=0, trial_idx=trial_idx, vigilance_task=practice_vigilance)
-        trial_idx += 1
+            # Run trial with PPS stimulation + vigilance task
+            run_trial(cond_trial, block_idx=0, trial_idx=trial_idx, vigilance_task=practice_vigilance)
+            trial_idx += 1
 
-    practice_vigilance.stop()
+        practice_vigilance.stop()
 
-    # Ask strawberry count
-    real = practice_vigilance.strawberry_count
-    ans, err = ask_strawberry_question(real)
-    show_feedback(ans, real, err)
+        # Ask strawberry count
+        real = practice_vigilance.strawberry_count
+        ans, err = ask_strawberry_question(real)
+        show_feedback(ans, real, err)
 
-    # Brief confirmation (4 seconds)
-    show_text_timed(
-        TEXTS[language]["vigilance_practice_done"],
-        seconds=8.0,
-        height=TEXT_HEIGHT,
-        wrap=TEXT_WRAP,
-    )
+        # Show practice done confirmation
+        show_text_timed(
+            TEXTS[language]["vigilance_practice_done"],
+            seconds=4.0,
+            height=TEXT_HEIGHT,
+            wrap=TEXT_WRAP,
+        )
+
+        # Ask if participant wants to redo training
+        repeat_training = ask_yes_no_question(question_key="vigilance_practice_repeat_question")
 
 def run_meditation_preparation():
     # Meditation preparation period - just display "Méditation" / "Meditation"
@@ -1464,26 +1681,31 @@ def run_meditation_practice():
         TEXTS[language]["meditation_practice_hint"],
     )
 
-    # Mini meditation task with ~3 PPS trials
-    practice_trials = ["AN", "T", "AF"]
-    t_end = clock.getTime() + 20.0  # 20 seconds of practice
-    trial_idx = 0
+    repeat_training = True
+    while repeat_training:
+        # Mini meditation task with ~3 PPS trials
+        practice_trials = ["AN", "T", "AF"]
+        t_end = clock.getTime() + 20.0  # 20 seconds of practice
+        trial_idx = 0
 
-    while clock.getTime() < t_end and trial_idx < len(practice_trials):
-        check_escape()
-        cond_trial = practice_trials[trial_idx]
+        while clock.getTime() < t_end and trial_idx < len(practice_trials):
+            check_escape()
+            cond_trial = practice_trials[trial_idx]
 
-        # Run trial with PPS stimulation only (no vigilance task)
-        run_trial(cond_trial, block_idx=0, trial_idx=trial_idx, vigilance_task=None)
-        trial_idx += 1
+            # Run trial with PPS stimulation only (no vigilance task)
+            run_trial(cond_trial, block_idx=0, trial_idx=trial_idx, vigilance_task=None)
+            trial_idx += 1
 
-    # Brief confirmation (4 seconds)
-    show_text_timed(
-        TEXTS[language]["meditation_practice_done"],
-        seconds=8.0,
-        height=TEXT_HEIGHT,
-        wrap=TEXT_WRAP,
-    )
+        # Show practice done confirmation
+        show_text_timed(
+            TEXTS[language]["meditation_practice_done"],
+            seconds=4.0,
+            height=TEXT_HEIGHT,
+            wrap=TEXT_WRAP,
+        )
+
+        # Ask if participant wants to redo training
+        repeat_training = ask_yes_no_question(question_key="meditation_practice_repeat_question")
 
 # ============================================================
 # MAIN LOOP
@@ -1608,14 +1830,144 @@ def run_condition_task(cond, is_first=False):
     save_logs_now()
 
 
+def run_rt_practice():
+    # Run 5 practice trials with all stimulus types (simple version, just like run_trial)
+    practice_trials = ["T", "AN", "AF", "ANT", "AFT"]
+
+    for trial_idx, cond_trial in enumerate(practice_trials):
+        check_escape()
+
+        audio_present, tactile_present, audio_side = describe_trial(cond_trial)
+        stim_onset = clock.getTime()
+
+        # Send event and play sounds (same as run_trial)
+        if cond_trial == "T":
+            print("RT Practice: T (tactile only)")
+            send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=DIGITIMER_TTL_CODE)
+        elif cond_trial == "AN":
+            print("RT Practice: AN (near sound)")
+            send_event(cond_trial, send_lsl=True, send_ttl=False)
+            play_sound_obj(NOISE_RIGHT)
+        elif cond_trial == "AF":
+            print("RT Practice: AF (far sound)")
+            send_event(cond_trial, send_lsl=True, send_ttl=False)
+            play_sound_obj(NOISE_LEFT)
+        elif cond_trial == "ANT":
+            print("RT Practice: ANT (near sound + tactile)")
+            send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=DIGITIMER_TTL_CODE)
+            play_sound_obj(NOISE_RIGHT)
+        elif cond_trial == "AFT":
+            print("RT Practice: AFT (far sound + tactile)")
+            send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=DIGITIMER_TTL_CODE)
+            play_sound_obj(NOISE_LEFT)
+
+        # Stimulus presentation window
+        stim_offset = stim_onset + DURATION_AUDIO
+        frame_loop_until(stim_offset)
+        stop_all_sounds()
+
+        # Offset marker
+        send_event(cond_trial + "_OFF", send_lsl=True, send_ttl=False)
+
+        # ISI
+        isi = random.choice(ISI_VALUES_PPS)
+        trial_end = stim_offset + isi
+        frame_loop_until(trial_end)
+
+def run_rt_block_task(is_first=True):
+    global rt_log_rows, rt_log_path
+
+    # Reset logs for RT
+    rt_log_rows = []
+    rt_log_path = make_rt_log_filename(pp_id, group)
+    print("\n=== Starting RT block ===")
+    print("RT log:", rt_log_path)
+
+    # Choose appropriate intro text based on position
+    intro_key = "rt_block_intro_first" if is_first else "rt_block_intro_end"
+
+    # 1. Show intro with hint about training
+    show_instruction_space(
+        TEXTS[language][intro_key],
+        TEXTS[language]["rt_block_intro_hint"],
+    )
+
+    # 2-5. Training loop
+    repeat_training = True
+    while repeat_training:
+        # 2. Display "Training phase" heading for 4 seconds
+        show_text_timed(
+            TEXTS[language]["rt_practice_heading"],
+            seconds=4.0,
+            height=TEXT_HEIGHT,
+            wrap=TEXT_WRAP,
+        )
+
+        # 3. Run practice trials (no output shown during this)
+        run_rt_practice()
+
+        # 4. Show practice done confirmation
+        show_text_timed(
+            TEXTS[language]["rt_practice_done"],
+            seconds=4.0,
+            height=TEXT_HEIGHT,
+            wrap=TEXT_WRAP,
+        )
+
+        # Ask if participant wants to redo training
+        repeat_training = ask_yes_no_question(question_key="rt_practice_repeat_question")
+
+    # 5. Display "Task will begin soon" for 4 seconds
+    show_text_timed(
+        TEXTS[language]["rt_ready"],
+        seconds=4.0,
+        height=TEXT_HEIGHT,
+        wrap=TEXT_WRAP,
+    )
+
+    # 6. Start main RT block
+    send_event("RT_BLOCK_START", send_lsl=True, send_ttl=False)
+    show_baseline(DURATION_BASELINE, send_markers=True)
+
+    rt_block = build_rt_block()
+
+    print(f"Running {len(rt_block)} RT trials")
+    for trial_idx, cond_trial in enumerate(rt_block):
+        run_rt_trial(condition_trial=cond_trial, trial_idx=trial_idx)
+
+    send_event("RT_BLOCK_END", send_lsl=True, send_ttl=False)
+
+    # 7. Display common end message for 4 seconds
+    show_text_timed(
+        TEXTS[language]["rt_block_end"],
+        seconds=4.0,
+        height=TEXT_HEIGHT,
+        wrap=TEXT_WRAP,
+    )
+
+    # 8. If RT block is at the beginning, show the message about no mouse for the rest
+    if is_first:
+        show_instruction_space(
+            TEXTS[language]["rt_block_end_first"],
+            TEXTS[language]["rt_block_end_first_hint"],
+        )
+
+    save_logs_now()
+
 try:
     # Condition 1 : chosen by experimenter
     cond_1 = condition_task
     cond_2 = "V" if cond_1 == "M" else "M"
 
+    if rt_block_position == "B":
+        run_rt_block_task(is_first=True)
+
     run_condition_task(cond_1, is_first=True)
 
     run_condition_task(cond_2, is_first=False)
+
+    if rt_block_position == "A":
+        run_rt_block_task(is_first=False)
 
 finally:
     save_logs_now()
