@@ -1,6 +1,10 @@
 # Memory
 Résumés courts de chaque session de travail (les plus récentes en premier). Alimenté via le skill `/memory`. Les éléments à retenir systématiquement vivent dans [CLAUDE.md](CLAUDE.md), pas ici.
 
+### 2026-07-07
+- Réorganisé dictionnaire TEXTS dans l'ordre d'apparition expérimental avec sections commentées (7 groupes)
+- Toutes les consignes revues et l'ordre des présentations à l'écran. 
+
 ### 2026-07-06
 - Accélération fruits : DURATION_FRUIT 2.0, ISI_FRUIT 0.2 (min 8 fraises, max 15)
 - P3A aléatoire à partir du quart du bloc (meilleure surprise)

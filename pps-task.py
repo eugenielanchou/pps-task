@@ -67,11 +67,12 @@ ISI_FRUIT = 0.2
 
 DURATION_END_BLOCK = 1.0
 DURATION_AFTER_BREAK = 30.0
-DURATION_FEEDBACK = 2.0
+DURATION_FEEDBACK = 4.0
 DURATION_BASELINE = 5.0
 DURATION_BASELINE_BLOCK = 3.0
 DURATION_RESTING_STATE = 1
 DURATION_TASK_START_MSG = 3.0
+DURATION_MEDITATION_PREP = 8  # 8 seconds for testing (set to 480 for 8 minutes in production)
 
 # ============================================================
 # DISPLAY PARAMETERS
@@ -142,94 +143,171 @@ TRIGGER_CODES = {
     "END_SCREEN_END": 127,
     "STRAWBERRY_QUESTION_START": 128,
     "STRAWBERRY_QUESTION_END": 129,
+    "STRAWBERRY_DISPLAY": 130,
 }
 
 # ============================================================
 # INSTRUCTION TEXTS
+# Organized in order of appearance in the experiment
 TEXTS = {
     "fr": {
-        "group_heading": "Le groupe :",
-        "group_hint": "Appuyez sur E ou C, puis sur la barre d'espace pour avancer.",
+        # ===== STARTUP & INFO COLLECTION =====
+        "lang_select": "Pour avoir les consignes en français, appuyez sur : F\n\nTo have the instructions in English, press: E",
         "participant_heading": "Le numéro du participant :",
-        "participant_hint": "Tapez le numéro ou code, puis appuyez sur la barre d'espace pour avancer.",
+        "participant_hint": "Tapez l'identifiant, puis appuyez sur la barre d'espace.",
+        "group_heading": "Le groupe :",
+        "group_hint": "Appuyez sur E ou C, puis sur la barre d'espace.",
         "condition_heading": "La condition :",
-        "condition_hint": "Appuyez sur M ou V, puis sur la barre d'espace pour avancer.",
-        "resting_state_heading": "Nous allons d'abord enregistrer une période de repos pendant 2 minutes.\n\nVeuillez simplement fixer la croix qui va apparaître à l'écran, sans bouger.",
-        "resting_state_hint": "Quand vous êtes prêt(e), appuyez sur la barre d'espace pour commencer.",
-        "thank_you": "Merci !",
-        "task_about_to_start": "La tâche va bientôt commencer.",
-        "famil_intro": "Durant cette expérience, vous allez entendre des sons provenant des deux haut-parleurs situés devant vous et ressentir une légère stimulation au niveau du torse.\n\n\nNous allons commencer par vous familiariser avec ces sensations.",
+        "condition_hint": "Appuyez sur M ou V, puis sur la barre d'espace.",
+
+        # ===== CALIBRATION & FAMILIARIZATION =====
+        "calibration_intro": "Pendant cette expérience, vous allez entendre des sons provenant des deux haut-parleurs situés devant vous.\n\n\nNous allons commencer par une phase de calibration auditive.",
+        "calibration_instruction": "Calibration :\n\n\nLe son va être présenté plusieurs fois.\n\nVous devrez indiquer si vous avez entendu un son ou non.",
+        "calibration_instruction_hint": "Appuyez sur la barre d'espace quand vous êtes prêt.",
+        "calibration_trial": "Avez-vous entendu un son ?",
+        "calibration_yes": "OUI",
+        "calibration_no": "NON",
+        "calibration_summary": "Calibration terminée.\n\nMerci !",
+
+        "famil_intro": "En plus d'entendre des sons, vous allez également ressentir une légère vibration au niveau du torse.\n\n\nNous allons vous familiariser avec la distance des deux sons et la vibration.",
         "famil_intro_hint": "Appuyez sur la barre d'espace pour essayer.",
         "famil_near_sound": "Vous allez entendre le son PROCHE.",
         "famil_near_sound_hint": "Appuyez sur la barre d'espace pour l'écouter.",
         "famil_far_sound": "Vous allez entendre le son LOIN.",
         "famil_far_sound_hint": "Appuyez sur la barre d'espace pour l'écouter.",
-        "famil_tactile": "Vous allez sentir la stimulation tactile.",
+        "famil_tactile": "Vous allez sentir la vibration tactile.",
         "famil_tactile_hint": "Appuyez sur la barre d'espace pour le sentir.",
         "famil_repeat_question": "Voulez-vous écouter à nouveau la différence ?",
-        "calibration_heading": "Calibration auditive",
-        "calibration_instruction": "Le son va être présenté plusieurs fois.\n\nVous devrez indiquer si vous avez entendu un son ou non.",
-        "calibration_instruction_hint": "Appuyez sur la barre d'espace quand vous êtes prêt(e).",
-        "calibration_trial": "Avez-vous entendu un son ?",
-        "calibration_yes": "OUI",
-        "calibration_no": "NON",
-        "calibration_summary": "Calibration terminée.\n\nMerci !",
         "famil_repeat_question_tactile": "Voulez-vous réessayer ?",
         "famil_repeat_yes_no": "Oui ou Non : appuyez sur O ou N, puis barre d'espace.",
-        "consigne_M": "Vous allez d'abord entendre des audios de méditation.\nVeuillez rester dans cet état tout au long de la séquence.\n\nPendant ce temps, vous entendrez des sons provenant des deux haut-parleurs situés devant vous\net percevrez une légère stimulation au niveau de votre torse.\n\nMerci de rester aussi immobile que possible, en fixant la croix.",
-        "consigne_V": "Voici les consignes de l'expérience :\n\nDurant cette partie, il ne faudra PAS méditer. Pour vous aider à rester vigilant et éviter une méditation automatique, nous vous proposons une petite mission :\n\nVous allez voir des fruits défiler à l'écran. Veuillez compter mentalement le nombre de FRAISES qui apparaissent.",
-        "consigne_hint": "Quand vous êtes prêt(e), appuyez sur la barre d'espace pour commencer.",
-        "break": "Fin du bloc {}/{}",
-        "question": "Combien de fraises avez-vous vues ?\n\nAppuyez sur la barre d'espace pour valider.",
+
+        "consigne_stimuli": "Durant l'expérience ce sont exactement ces sons et cette vibration que vous allez percevoir. \n\nOn vous demandera uniquement de les percevoir, sans rien faire d'autre. Seul votre état mental devra changer : méditation ou non.",
+        "consigne_stimuli_hint": "Appuyez sur la barre espace pour commencer.",
+
+        # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
+        "task_will_start": "La tâche va commencer maintenant.",
+        "consigne_M_E_first": "L'expérience va se dérouler en deux parties :\n\n Durant cette première partie, vous allez devoir entrer dans un état de méditation non-duelle. \n\nNous allons vous laisser 8 minutes pour cela, maintenant.\nInstallez vous",
+        "consigne_V_E_first": "L'expérience va se dérouler en deux parties : \n\n Durant cette première partie, vous ne devez PAS entrer dans un état de méditation (si possible).\n\nPour vous aider, nous vous proposons une petite mission : des fruits vont défiler à l'écran, veuillez compter (mentalement) le nombre de FRAISES qui apparaissent.",
+        "consigne_M_E_after": "Nous entrons maintenant dans la seconde phase de l'expérience. \n\nVous allez devoir, cette fois, entrer dans un état de méditation non-duelle. \n\nNous allons vous laisser 8 minutes pour cela, maintenant.\nInstallez vous",
+        "consigne_V_E_after": "Nous entrons maintenant dans la seconde phase de l'expérience. \n\nElle sera identique, mais cette fois vous ne devez PAS entrer dans un état de méditation.\n\nPour vous aider, nous vous proposons une petite mission : des fruits vont défiler à l'écran, veuillez compter mentalement le nombre de FRAISES qui apparaissent.",
+        "consigne_M_C_first": "L'expérience va se dérouler en deux parties : durant cette première partie, vous allez écouter un audio qui va vous guider progressivement, étape par étape vers un état de méditation, calme. \n\nLaissez-vous porter par les instructions, sans chercher à faire quoi que ce soit de particulier en dehors de ce qu'elles vous demandent.",
+        "consigne_V_C_first": "L'expérience va se dérouler en deux parties : durant cette première partie, on va vous demander de vous concentrer sur l'écran. Pour vous aider, nous vous proposons une petite mission : des fruits vont défiler à l'écran, veuillez compter mentalement le nombre de FRAISES qui apparaissent.",
+        "consigne_M_C_after": "Nous entrons maintenant dans la seconde phase de l'expérience. Vous allez, cette fois, écouter un audio qui va vous guider progressivement, étape par étape. Laissez-vous porter par les instructions, sans chercher à faire quoi que ce soit de particulier en dehors de ce qu'elles vous demandent.",
+        "consigne_V_C_after": "Nous entrons maintenant dans la seconde phase de l'expérience. Elle sera identique, mais cette fois on va vous demander de rester simplement concentré sur l'écran.\n\nPour vous aider, nous vous proposons une petite mission : des fruits vont défiler à l'écran, veuillez compter mentalement le nombre de FRAISES qui apparaissent.",
+        "consigne_hint": "Quand vous êtes prêt, appuyez sur la barre d'espace pour commencer.",
+
+        # ===== PRACTICE PHASES =====
+        "vigilance_practice_heading": "Phase d'entraînement",
+        "vigilance_practice_intro": "Vous allez faire une courte phase d'entraînement.\n\nVous entendrez les sons et ressentirez les vibrations, tandis que les fruits défileront à l'écran.\n\nCompter le nombre de FRAISES.",
+        "vigilance_practice_hint": "Appuyez sur la barre d'espace pour commencer.",
+        "vigilance_practice_done": "Bien! Vous avez maintenant une idée de ce qui va se passer.\n\nLe même protocole sera répété sur plusieurs blocs.",
+        "vigilance_practice_done_hint": "Appuyez sur la barre d'espace pour continuer.",
+        "meditation_practice_done_hint": "Appuyez sur la barre d'espace pour continuer.",
+
+        "meditation_label": "Méditation",
+        "meditation_practice_heading": "Phase d'entraînement",
+        "meditation_practice_intro": "Vous allez faire une courte phase d'entraînement.\n\nVous entendrez les sons et ressentirez les vibrations, tandis que vous devez fixer la croix à l'écran et rester en état de méditation.",
+        "meditation_practice_hint": "Appuyez sur la barre d'espace pour commencer.",
+        "meditation_practice_done": "Bien! Vous avez maintenant une idée de ce qui va se passer.\n\nLe même protocole sera répété sur plusieurs blocs.\nTentez de maintenir votre état de méditation tout au long.",
+
+        # ===== RESTING STATE & TRIALS =====
+        "resting_state_heading": "Nous commençons juste par une période de repos de 2 minutes : Veuillez simplement fixer la croix qui va apparaître à l'écran, sans bouger. \n\n\La tâche commencera directement après.",
+        "resting_state_hint": "Quand vous êtes prêt, appuyez sur la barre d'espace pour commencer l'expérience.",
+
+        # ===== TRIALS =====
+        "question": "Combien de fraises avez-vous vues ?",
+        "question_hint": "Appuyez sur la barre d'espace pour valider.",
         "feedback_template": "Vous avez répondu : {ans}\nNombre réel de fraises : {real}\n\nÉcart : {err}",
+        "feedback_well_done": "Bravo, continuez comme ça !",
+        "feedback_try_harder": "Soyez plus attentif !",
+
+        # ===== BREAKS & TRANSITIONS =====
+        "break": "Fin du bloc {}/{}",
         "ipad_pheno": "Veuillez prendre l'iPad et répondre à la question dessus.\n\nUne fois terminé, appuyez sur la barre d'espace.",
         "after_break_M": "Prenez quelques secondes pour vous remettre dans l'état de méditation.\n\nL'expérience reprendra bientôt.",
         "after_break_V": "La même tâche va de nouveau vous être présentée.\n\nInstallez-vous, l'expérience reprendra bientôt.",
+        "transition": "Fin de la condition {}.\n\nLa condition {} va maintenant commencer.\n\nAppuyez sur la barre d'espace quand vous êtes prêt.",
+
+        # ===== END =====
         "end": "Merci pour votre participation !",
-        "lang_select": "Pour avoir les consignes en français, appuyez sur : F\n\nTo have the instructions in English, press: E",
-        "transition": "Fin de la condition {}.\n\nLa condition {} va maintenant commencer.\n\nAppuyez sur la barre d'espace quand vous êtes prêt(e).",
     },
     "en": {
-        "group_heading": "Group:",
-        "group_hint": "Press E or C, then press the space bar to continue.",
+        # ===== STARTUP & INFO COLLECTION =====
+        "lang_select": "Pour avoir les consignes en français, appuyez sur : F\n\nTo have the instructions in English, press: E",
         "participant_heading": "Participant number:",
         "participant_hint": "Type the number or code, then press the space bar to continue.",
+        "group_heading": "Group:",
+        "group_hint": "Press E or C, then press the space bar to continue.",
         "condition_heading": "Condition:",
         "condition_hint": "Press M or V, then press the space bar to continue.",
-        "resting_state_heading": "We will first record a resting-state period for 2 minutes.\n\nPlease simply fixate on the cross that will appear on the screen, without moving.",
-        "resting_state_hint": "When you are ready, press the space bar to begin.",
-        "thank_you": "Thank you!",
-        "task_about_to_start": "The task will begin soon.",
-        "famil_intro": "During this experiment, you will hear sounds from the two loudspeakers in front of you and feel a brief stimulation on your chest.\n\n\nWe will start by familiarizing you with these sensations.",
-        "famil_intro_hint": "Press the space bar to try.",
-        "famil_near_sound": "You will hear the NEAR sound.",
-        "famil_near_sound_hint": "Press the space bar to listen.",
-        "famil_far_sound": "You will hear the FAR sound.",
-        "famil_far_sound_hint": "Press the space bar to listen.",
-        "famil_tactile": "You will feel the tactile stimulation.",
-        "famil_tactile_hint": "Press the space bar to feel it.",
-        "famil_repeat_question": "Would you like to hear the difference again?",
-        "calibration_heading": "Auditory calibration",
-        "calibration_instruction": "The sound will be presented several times.\n\nYou will need to indicate whether you heard a sound or not.",
+
+        # ===== CALIBRATION & FAMILIARIZATION =====
+        "calibration_intro": "During this experiment, you will hear sounds from the two loudspeakers in front of you.\n\nWe will start with an auditory calibration phase.",
+        "calibration_instruction": "Calibration:\n\n\nThe sound will be presented several times.\n\nYou will need to indicate whether you heard a sound or not.",
         "calibration_instruction_hint": "Press the space bar when you are ready.",
         "calibration_trial": "Did you hear a sound?",
         "calibration_yes": "YES",
         "calibration_no": "NO",
         "calibration_summary": "Calibration complete.\n\nThank you!",
+
+        "famil_intro": "In addition to hearing sounds, you will also feel a slight vibration on your chest.\n\n\nWe will familiarize you with these sensations.",
+        "famil_intro_hint": "Press the space bar to try.",
+        "famil_near_sound": "You will hear the NEAR sound.",
+        "famil_near_sound_hint": "Press the space bar to listen.",
+        "famil_far_sound": "You will hear the FAR sound.",
+        "famil_far_sound_hint": "Press the space bar to listen.",
+        "famil_tactile": "You will feel the tactile vibration.",
+        "famil_tactile_hint": "Press the space bar to feel it.",
+        "famil_repeat_question": "Would you like to hear the difference again?",
         "famil_repeat_question_tactile": "Would you like to try again?",
         "famil_repeat_yes_no": "Yes or No: press Y or N, then space bar.",
-        "consigne_M": "You will first hear meditation audio recordings.\nPlease remain in this state throughout the sequence.\n\nDuring this time, you will hear sounds coming from the two loudspeakers in front of you\nand feel a brief stimulation on your chest.\n\nPlease remain as still as possible while fixating the cross.",
-        "consigne_V": "Here are the experiment instructions:\n\nFor this part, you must NOT meditate. To help you stay vigilant and avoid automatic meditation, we have a small task for you:\n\nYou will see fruits appearing on the screen. Please count mentally the number of STRAWBERRIES that appear.",
+
+        "consigne_stimuli": "During the experiment, you will perceive exactly these sounds and this vibration.\n\nYou will only be asked to perceive them, without doing anything else.\n\nOnly your mental state will change: meditation or not.",
+        "consigne_stimuli_hint": "If you understood, press the space bar.",
+
+        # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
+        "task_will_start": "The task will now begin.",
+        "consigne_M_E_first": "The experiment will unfold in two parts:\n\nDuring this first part, you will need to enter a non-dual meditative state.\n\nWe will give you several minutes to do this.",
+        "consigne_V_E_first": "The experiment will unfold in two parts:\n\nDuring this first part, you must NOT enter a meditative state, if possible.\n\nTo help you, we propose a small task: fruits will appear on the screen. Please count mentally the number of STRAWBERRIES that appear.",
+        "consigne_M_E_after": "We are now entering the second phase of the experiment.\n\nYou will need, this time, to enter a non-dual meditative state.\n\nWe will give you several minutes to do this.",
+        "consigne_V_E_after": "We are now entering the second phase of the experiment.\n\nIt will be identical, but this time you must NOT enter a meditative state.\n\nTo help you, we propose a small task: fruits will appear on the screen. Please count mentally the number of STRAWBERRIES that appear.",
+        "consigne_M_C_first": "The experiment will unfold in two parts: during this first part, you will listen to an audio that will guide you progressively, step by step towards a calm meditative state.\n\nLet yourself be guided by the instructions, without trying to do anything special beyond what they ask you to do.",
+        "consigne_V_C_first": "The experiment will unfold in two parts: during this first part, we will ask you to focus on the screen. To help you, we propose a small task: fruits will appear on the screen. Please count mentally the number of STRAWBERRIES that appear.",
+        "consigne_M_C_after": "We are now entering the second phase of the experiment. You will, this time, listen to an audio that will guide you progressively, step by step. Let yourself be guided by the instructions, without trying to do anything special beyond what they ask you to do.",
+        "consigne_V_C_after": "We are now entering the second phase of the experiment. It will be identical, but this time we will ask you to simply stay focused on the screen.\n\nTo help you, we propose a small task: fruits will appear on the screen. Please count mentally the number of STRAWBERRIES that appear.",
         "consigne_hint": "When you are ready, press the space bar to begin.",
-        "break": "End of block {}/{}",
-        "question": "How many strawberries did you see?\n\nPress the space bar to validate.",
+
+        # ===== PRACTICE PHASES =====
+        "vigilance_practice_heading": "Training phase",
+        "vigilance_practice_intro": "You will now do a short training phase.\n\nYou will hear the sounds and feel the vibrations, while fruits appear on the screen.\n\nCount the number of STRAWBERRIES.",
+        "vigilance_practice_hint": "Press the space bar to begin.",
+        "meditation_label": "Meditation",
+        "meditation_practice_heading": "Training phase",
+        "meditation_practice_intro": "You will now do a short training phase.\n\nYou will hear the sounds and feel the vibrations, while you must focus on the cross on the screen and remain in a meditative state.",
+        "meditation_practice_hint": "Press the space bar to begin.",
+        "meditation_practice_done": "Good! You now have an idea of what will happen.\n\nThe same protocol will be repeated over several blocks.\nTry to maintain your meditative state throughout.\n\n\nWe will now start with a resting period for 2 minutes.\nPlease simply focus on the cross that will appear on the screen, without moving.",
+        "meditation_practice_done_hint": "Press the space bar to continue.",
+        "vigilance_practice_done": "Good! You now have an idea of what will happen.\n\nThe same protocol will be repeated over several blocks.\n\n\nWe will now start with a resting period for 2 minutes, then the task will begin.\nPlease simply focus on the cross that will appear on the screen, without moving.",
+        "vigilance_practice_done_hint": "Press the space bar to continue.",
+
+        # ===== RESTING STATE & TRIALS =====
+        "resting_state_heading": "We will first record a resting-state period for 2 minutes.\n\nPlease simply fixate on the cross that will appear on the screen, without moving.",
+        "resting_state_hint": "When you are ready, press the space bar to begin.",
+        "question": "How many strawberries did you see?",
+        "question_hint": "Press the space bar to validate.",
         "feedback_template": "Your answer: {ans}\nReal number of strawberries: {real}\n\nDifference: {err}",
+        "feedback_well_done": "Great job, keep it up!",
+        "feedback_try_harder": "Be more attentive!",
+
+        # ===== BREAKS & TRANSITIONS =====
+        "break": "End of block {}/{}",
         "ipad_pheno": "Please take the iPad and answer the question.\n\nThen, press the space bar.",
         "after_break_M": "Take a few seconds to return to a meditative state.\n\nThe experiment will resume soon.",
         "after_break_V": "The same task will be presented again.\n\nPlease get settled; the experiment will resume soon.",
-        "end": "Thank you for your participation!",
-        "lang_select": "Pour avoir les consignes en français, appuyez sur : F\n\nTo have the instructions in English, press: E",
         "transition": "End of the {} condition.\n\nThe {} condition will now begin.\n\nPress the space bar when you are ready.",
+
+        # ===== END =====
+        "end": "Thank you for your participation!",
     }
 }
 
@@ -688,7 +766,7 @@ def show_resting_state():
         end_key="RESTING_STATE_END",
     )
     show_text_timed(
-        TEXTS[language]["thank_you"], seconds=DURATION_TASK_START_MSG, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+        TEXTS[language]["task_will_start"], seconds=DURATION_TASK_START_MSG, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
         start_key="TASK_START_MSG_START", end_key="TASK_START_MSG_END",
     )
 
@@ -699,7 +777,11 @@ def show_end_of_block_screen(block_idx):
 
 def show_feedback(ans, real, err):
     fb_txt = TEXTS[language]["feedback_template"].format(ans=ans, real=real, err=err)
-    show_text_timed(fb_txt, seconds=DURATION_FEEDBACK, height=22, wrap=TEXT_WRAP,
+    if err == 0:
+        fb_txt += "\n\n" + TEXTS[language]["feedback_well_done"]
+    elif err != 0:
+        fb_txt += "\n\n" + TEXTS[language]["feedback_try_harder"]
+    show_text_timed(fb_txt, seconds=DURATION_FEEDBACK, height=28, wrap=TEXT_WRAP,
                      start_key="FEEDBACK_START", end_key="FEEDBACK_END")
 
 def show_ipad_pheno():
@@ -773,7 +855,7 @@ def show_calibration_psychophysical():
     CATCH_TRIAL_PROB = 0.25
 
     show_instruction_space(
-        TEXTS[language]["calibration_heading"] + "\n\n" + TEXTS[language]["calibration_instruction"],
+        TEXTS[language]["calibration_instruction"],
         TEXTS[language]["calibration_instruction_hint"],
         height=TEXT_HEIGHT,
         wrap=TEXT_WRAP,
@@ -1003,6 +1085,7 @@ class VigilanceTaskContinuous:
 
         if "fraise" in os.path.basename(self.current_path).lower():
             self.strawberry_count += 1
+            send_event("STRAWBERRY_DISPLAY", send_lsl=True, send_ttl=False)
 
         self.phase = "fruit"
         self.t_next = now + DURATION_FRUIT
@@ -1024,6 +1107,7 @@ class VigilanceTaskContinuous:
                 self.total_fruit_count += 1
                 if "fraise" in os.path.basename(self.current_path).lower():
                     self.strawberry_count += 1
+                    send_event("STRAWBERRY_DISPLAY", send_lsl=True, send_ttl=False)
                 self.phase = "fruit"
                 self.t_next = now + DURATION_FRUIT
 
@@ -1167,8 +1251,9 @@ def ask_strawberry_question(real_count):
 
     while True:
         check_escape()
-        draw_text(TEXTS[language]["question"], height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 40))
-        draw_text(typed if typed else "_", height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, -20))
+        draw_text(TEXTS[language]["question"], height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 80))
+        draw_text(typed, height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 0))
+        draw_hint(TEXTS[language]["question_hint"], pos=(0, -200))
         win.flip()
 
         keys = get_keys(
@@ -1211,16 +1296,6 @@ while True:
         break
 
 # ============================================================
-# GROUP SELECTION
-# "E" = expert meditator, "C" = control (never meditated). Typed by the experimenter, not shown to the participant.
-group = select_single_key(
-    TEXTS[language]["group_heading"],
-    TEXTS[language]["group_hint"],
-    ["e", "c"],
-)
-print(f"Group: {group}")
-
-# ============================================================
 # PARTICIPANT INFO
 pp_id = collect_text_input(
     TEXTS[language]["participant_heading"],
@@ -1231,12 +1306,14 @@ pp_id = collect_text_input(
 print(f"Participant ID: {pp_id}")
 
 # ============================================================
-# STIMULUS FAMILIARIZATION
-show_stimulus_familiarization()
-
-# ============================================================
-# AUDIO CALIBRATION
-show_calibration_psychophysical()
+# GROUP SELECTION
+# "E" = expert meditator, "C" = control (never meditated). Typed by the experimenter, not shown to the participant.
+group = select_single_key(
+    TEXTS[language]["group_heading"],
+    TEXTS[language]["group_hint"],
+    ["e", "c"],
+)
+print(f"Group: {group}")
 
 # ============================================================
 # CONDITION SELECTION (M = meditation, V = vigilance)
@@ -1249,8 +1326,164 @@ condition_task = select_single_key(
 print(f"Condition: {condition_task}")
 
 # ============================================================
+# AUDIO CALIBRATION INTRO
+show_instruction_space(
+    TEXTS[language]["calibration_intro"],
+    TEXTS[language]["consigne_stimuli_hint"],
+)
+
+# ============================================================
+# AUDIO CALIBRATION
+show_calibration_psychophysical()
+
+# ============================================================
+# STIMULUS FAMILIARIZATION
+show_stimulus_familiarization()
+
+# ============================================================
+# GENERAL INSTRUCTION ABOUT STIMULI (same for all conditions)
+show_instruction_space(
+    TEXTS[language]["consigne_stimuli"],
+    TEXTS[language]["consigne_stimuli_hint"],
+)
+
+# ============================================================
 # SESSION TIMESTAMP (for log filenames)
 session_dt = now_str()
+
+# ============================================================
+# VIGILANCE PRACTICE TASK (short trial before main blocks)
+class VigilanceTaskPractice:
+    def __init__(self, win_, num_fruits=12, num_strawberries=2):
+        self.win = win_
+        self.num_fruits_target = num_fruits
+        self.strawberry_count = 0
+        self.total_fruit_count = 0
+        self.fruits_displayed = []
+
+        self.stimuli = [
+            "stimuli/banane.png",
+            "stimuli/citron.png",
+            "stimuli/fraise.png",
+            "stimuli/goyave.png",
+            "stimuli/kiwi.png",
+            "stimuli/myrtilles.png",
+            "stimuli/passion.png",
+            "stimuli/raisin.png",
+        ]
+
+        self.image_stims = {
+            p: visual.ImageStim(self.win, image=p, size=(200, 200))
+            for p in self.stimuli
+        }
+
+        # Generate random sequence with a fixed number of strawberries
+        non_strawberry_stimuli = [s for s in self.stimuli if "fraise" not in s.lower()]
+        strawberry_stimuli = [s for s in self.stimuli if "fraise" in s.lower()]
+
+        self.fruits_displayed = random.sample(non_strawberry_stimuli, min(num_fruits - num_strawberries, len(non_strawberry_stimuli)))
+        self.fruits_displayed.extend(random.choices(strawberry_stimuli, k=num_strawberries))
+        random.shuffle(self.fruits_displayed)
+        self.strawberry_count = num_strawberries
+        self.total_fruit_count = len(self.fruits_displayed)
+
+    def show(self):
+        clear_keyboard()
+        fruit_idx = 0
+        t_end = core.getTime() + (self.total_fruit_count * (DURATION_FRUIT + ISI_FRUIT))
+
+        while core.getTime() < t_end and fruit_idx < len(self.fruits_displayed):
+            check_escape()
+
+            # Show current fruit or fixation
+            if (fruit_idx % 2) == 0:
+                fruit_path = self.fruits_displayed[fruit_idx]
+                self.image_stims[fruit_path].draw()
+                fruit_idx += 1
+            else:
+                draw_fixation_only()
+                fruit_idx += 1
+
+            win.flip()
+            core.wait(DURATION_FRUIT + ISI_FRUIT)
+
+def run_vigilance_practice():
+    # Introduction to practice phase
+    show_instruction_space(
+        TEXTS[language]["vigilance_practice_intro"],
+        TEXTS[language]["vigilance_practice_hint"],
+    )
+
+    # Setup practice vigilance task
+    practice_vigilance = VigilanceTaskContinuous(win)
+    practice_vigilance.start(clock.getTime())
+
+    # Mini block with ~3 practice trials (mix of conditions)
+    practice_trials = ["AN", "T", "AF"]
+    t_end = clock.getTime() + 20.0  # 20 seconds of practice
+    trial_idx = 0
+
+    while clock.getTime() < t_end and trial_idx < len(practice_trials):
+        check_escape()
+        cond_trial = practice_trials[trial_idx]
+
+        # Run trial with PPS stimulation + vigilance task
+        run_trial(cond_trial, block_idx=0, trial_idx=trial_idx, vigilance_task=practice_vigilance)
+        trial_idx += 1
+
+    practice_vigilance.stop()
+
+    # Ask strawberry count
+    real = practice_vigilance.strawberry_count
+    ans, err = ask_strawberry_question(real)
+    show_feedback(ans, real, err)
+
+    # Brief confirmation (4 seconds)
+    show_text_timed(
+        TEXTS[language]["vigilance_practice_done"],
+        seconds=8.0,
+        height=TEXT_HEIGHT,
+        wrap=TEXT_WRAP,
+    )
+
+def run_meditation_preparation():
+    # Meditation preparation period - just display "Méditation" / "Meditation"
+    clear_keyboard()
+    t_end = core.getTime() + DURATION_MEDITATION_PREP
+
+    while core.getTime() < t_end:
+        check_escape()
+        draw_text(TEXTS[language]["meditation_label"], height=48, wrap=TEXT_WRAP)
+        win.flip()
+        core.wait(0.05)
+
+def run_meditation_practice():
+    # Introduction to meditation practice phase
+    show_instruction_space(
+        TEXTS[language]["meditation_practice_intro"],
+        TEXTS[language]["meditation_practice_hint"],
+    )
+
+    # Mini meditation task with ~3 PPS trials
+    practice_trials = ["AN", "T", "AF"]
+    t_end = clock.getTime() + 20.0  # 20 seconds of practice
+    trial_idx = 0
+
+    while clock.getTime() < t_end and trial_idx < len(practice_trials):
+        check_escape()
+        cond_trial = practice_trials[trial_idx]
+
+        # Run trial with PPS stimulation only (no vigilance task)
+        run_trial(cond_trial, block_idx=0, trial_idx=trial_idx, vigilance_task=None)
+        trial_idx += 1
+
+    # Brief confirmation (4 seconds)
+    show_text_timed(
+        TEXTS[language]["meditation_practice_done"],
+        seconds=8.0,
+        height=TEXT_HEIGHT,
+        wrap=TEXT_WRAP,
+    )
 
 # ============================================================
 # MAIN LOOP
@@ -1277,7 +1510,10 @@ def run_condition_task(cond, is_first=False):
     vigilance_task = VigilanceTaskContinuous(win) if condition_task == "V" else None
     all_blocks = build_experiment()
 
-    instruction_key = "consigne_V" if condition_task == "V" else "consigne_M"
+    # Determine the correct instruction key based on group, condition, and order
+    order_suffix = "first" if is_first else "after"
+    instruction_key = f"consigne_{condition_task}_{group}_{order_suffix}"
+
     consigne_start_key = "CONSIGNE_V_START" if condition_task == "V" else "CONSIGNE_M_START"
     consigne_end_key = "CONSIGNE_V_END" if condition_task == "V" else "CONSIGNE_M_END"
     show_instruction_space(
@@ -1285,9 +1521,14 @@ def run_condition_task(cond, is_first=False):
         start_key=consigne_start_key, end_key=consigne_end_key,
     )
 
-    show_text_timed(
-        TEXTS[language]["task_about_to_start"], seconds=DURATION_TASK_START_MSG, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
-    )
+    # Practice phase for vigilance or meditation condition
+    if condition_task == "V":
+        run_vigilance_practice()
+    elif condition_task == "M":
+        # Meditation preparation period (only for experts)
+        if group == "E":
+            run_meditation_preparation()
+        run_meditation_practice()
 
     if is_first:
         show_resting_state()
@@ -1374,15 +1615,7 @@ try:
 
     run_condition_task(cond_1, is_first=True)
 
-    # Transition screen
-    label_1 = condition_task_labels[cond_1][language]
-    label_2 = condition_task_labels[cond_2][language]
-    show_text_space(
-        TEXTS[language]["transition"].format(label_1, label_2),
-        start_key="TRANSITION_START", end_key="TRANSITION_END",
-    )
-
-    run_condition_task(cond_2)
+    run_condition_task(cond_2, is_first=False)
 
 finally:
     save_logs_now()

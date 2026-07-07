@@ -15,7 +15,3 @@ for i, stream in enumerate(streams):
     print(f"  Fréquence: {info['nominal_srate'][0]} Hz")
     print(f"  Durée: {len(stream['time_series'])} samples")
     print()
-
-import mne
-raw = mne.io.read_raw_xdf("ton_fichier.xdf")
-raw.plot()  # Visualise EEG + markers alignés
