@@ -4,6 +4,8 @@ Résumés courts de chaque session de travail (les plus récentes en premier). A
 ### 2026-07-07
 - Réorganisé dictionnaire TEXTS dans l'ordre d'apparition expérimental avec sections commentées (7 groupes)
 - Toutes les consignes revues et l'ordre des présentations à l'écran. 
+- Ajout block RT (à mettre manuellement au début ou à la fin)
+- Mettre des entrainemements.
 
 ### 2026-07-06
 - Accélération fruits : DURATION_FRUIT 2.0, ISI_FRUIT 0.2 (min 8 fraises, max 15)

@@ -26,7 +26,7 @@ except ImportError:
 prefs.hardware["audioLib"] = ["sounddevice"]
 prefs.hardware["audioDevice"] = [AUDIO_DEVICE_NAME]
 
-from psychopy import core, visual, sound, event
+from psychopy import core, visual, sound
 from psychopy.hardware import keyboard
 
 # ============================================================
@@ -162,8 +162,8 @@ TEXTS = {
         "group_hint": "Appuyez sur E ou C, puis sur la barre d'espace.",
         "condition_heading": "La condition :",
         "condition_hint": "Appuyez sur M ou V, puis sur la barre d'espace.",
-        "rt_block_position_heading": "Bloc de temps de réaction :",
-        "rt_block_position_hint": "Appuyez sur B (avant) ou A (après), puis sur la barre d'espace.",
+        "rt_block_position_heading": "Bloc avec RT :",
+        "rt_block_position_hint": "Appuyez sur B (before) ou A (after), puis sur la barre d'espace.",
 
         # ===== CALIBRATION & FAMILIARIZATION =====
         "calibration_intro": "Pendant cette expérience, vous allez entendre des sons provenant des deux haut-parleurs situés devant vous.\n\n\nNous allons commencer par une phase de calibration auditive.",
@@ -190,8 +190,8 @@ TEXTS = {
         "consigne_stimuli_hint": "Appuyez sur la barre espace pour commencer.",
 
         # ===== REACTION TIME BLOCK =====
-        "rt_block_intro_first": "Nous allons commencer par un petit excercice : dès que vous sentez la vibration, cliquez AUSSI RAPIDEMENT que possible sur la souris.\n\n",
-        "rt_block_intro_end": "Nous allons terminer par un petit excercice : vous allez entendre les mêmes sons et sentir la même vibration.\n\nMais, cette fois, vous devez cliquer avec la souris AUSSI RAPIDEMENT que possible quand vous ressentez la vibration.",
+        "rt_block_intro_first": "Nous allons commencer par un petit excercice : dès que vous sentez la vibration, appuyez sur la barre d'espace AUSSI RAPIDEMENT que possible.\n\n",
+        "rt_block_intro_end": "Nous allons terminer par un petit excercice : vous allez entendre les mêmes sons et sentir la même vibration.\n\nMais, cette fois, vous devez appuyer sur la barre d'espace AUSSI RAPIDEMENT que possible quand vous ressentez la vibration.",
         "rt_block_intro_hint": "Appuyez sur la barre d'espace pour commencer l'entrainement.",
         "rt_practice_heading": "Phase d'entraînement",
         "rt_practice_done": "Bien! Vous avez maintenant une idée de ce qui va se passer.",
@@ -246,6 +246,8 @@ TEXTS = {
         "after_break_M": "Prenez quelques secondes pour vous remettre dans l'état de méditation.\n\nL'expérience reprendra bientôt.",
         "after_break_V": "La même tâche va de nouveau vous être présentée.\n\nInstallez-vous, l'expérience reprendra bientôt.",
         "transition": "Fin de la condition {}.\n\nLa condition {} va maintenant commencer.\n\nAppuyez sur la barre d'espace quand vous êtes prêt.",
+        "condition_pause": "Prenez quelques minutes.\n\nVous pouvez bouger et demander de l'eau à l'expérimentateur si besoin.",
+        "condition_pause_hint": "Appuyez sur la barre d'espace quand vous êtes prêt.",
 
         # ===== END =====
         "end": "Merci pour votre participation !",
@@ -299,8 +301,8 @@ TEXTS = {
         "consigne_hint": "When you are ready, press the space bar to begin.",
 
         # ===== REACTION TIME BLOCK =====
-        "rt_block_intro_first": "We will start with a small exercise: as soon as you feel the vibration, click AS QUICKLY AS POSSIBLE on the mouse.\n\n",
-        "rt_block_intro_end": "We will now finish with a small exercise: you will hear the same sounds and feel the same vibration.\n\nBut this time, you must click the mouse AS QUICKLY AS POSSIBLE when you feel the vibration.",
+        "rt_block_intro_first": "We will start with a small exercise: as soon as you feel the vibration, press the space bar AS QUICKLY AS POSSIBLE.\n\n",
+        "rt_block_intro_end": "We will now finish with a small exercise: you will hear the same sounds and feel the same vibration.\n\nBut this time, you must press the space bar AS QUICKLY AS POSSIBLE when you feel the vibration.",
         "rt_block_intro_hint": "Press the space bar to begin the training.",
         "rt_practice_heading": "Training phase",
         "rt_practice_hint": "Press the space bar to begin.",
@@ -340,6 +342,8 @@ TEXTS = {
         "after_break_M": "Take a few seconds to return to a meditative state.\n\nThe experiment will resume soon.",
         "after_break_V": "The same task will be presented again.\n\nPlease get settled; the experiment will resume soon.",
         "transition": "End of the {} condition.\n\nThe {} condition will now begin.\n\nPress the space bar when you are ready.",
+        "condition_pause": "Take a few minutes.\n\nYou can move around and ask the experimenter for water if needed.",
+        "condition_pause_hint": "Press the space bar when you are ready.",
 
         # ===== END =====
         "end": "Thank you for your participation!",
@@ -912,7 +916,6 @@ def show_stimulus_familiarization():
             break
 
 def show_calibration_psychophysical():
-    NUM_TRIALS = 20
     CATCH_TRIAL_PROB = 0.25
 
     show_instruction_space(
@@ -922,67 +925,73 @@ def show_calibration_psychophysical():
         wrap=TEXT_WRAP,
     )
 
-    mouse_obj = event.Mouse(win=win, visible=True)
-
-    yes_button = visual.Rect(win, width=150, height=80, pos=(-150, -150), fillColor="gray", opacity=0.7)
-    no_button = visual.Rect(win, width=150, height=80, pos=(150, -150), fillColor="gray", opacity=0.7)
-    yes_text = visual.TextStim(win, text=TEXTS[language]["calibration_yes"], pos=(-150, -150), height=28, color="white", bold=True)
-    no_text = visual.TextStim(win, text=TEXTS[language]["calibration_no"], pos=(150, -150), height=28, color="white", bold=True)
-    sound_indicator = visual.TextStim(win, text="Son", pos=(0, 100), height=40, color="yellow", bold=True)
-    question = visual.TextStim(win, text=TEXTS[language]["calibration_trial"], pos=(0, 0), height=32, color="white")
-
+    print("\n=== Auditory Calibration Start ===")
+    print("Press ENTER when calibration is complete.")
     calibration_done = False
     trial_idx = 0
 
     while not calibration_done:
+        trial_idx += 1
         is_catch_trial = random.random() < CATCH_TRIAL_PROB
 
+        # Show sound indicator
+        sound_indicator = visual.TextStim(win, text="Son", pos=(0, 100), height=40, color="yellow", bold=True)
         sound_indicator.draw()
         win.flip()
         core.wait(0.5)
 
         if not is_catch_trial:
             play_sound_obj(NOISE_RIGHT)
-            core.wait(DURATION_AUDIO + 0.1)
-            stop_all_sounds()
-        else:
-            core.wait(DURATION_AUDIO + 0.1)
 
-        core.wait(0.5)
+        core.wait(DURATION_AUDIO)
+        stop_all_sounds()
 
-        answered = False
-        while not answered:
+        # Wait for response (space = heard, or timeout)
+        response_timeout = core.getTime() + 2.0
+        clear_keyboard()
+
+        response_detected = False
+        while core.getTime() < response_timeout:
             check_escape()
-            question.draw()
-            yes_button.draw()
-            no_button.draw()
-            yes_text.draw()
-            no_text.draw()
+            draw_fixation_only()
             win.flip()
 
-            if yes_button.contains(mouse_obj):
-                if mouse_obj.getPressed()[0]:
-                    answered = True
-                    core.wait(0.3)
-            elif no_button.contains(mouse_obj):
-                if mouse_obj.getPressed()[0]:
-                    answered = True
-                    core.wait(0.3)
+            keys = get_keys(["space", "escape", "return"])
+            if any(k.name == "escape" for k in keys):
+                safe_quit()
+            if any(k.name == "return" for k in keys):
+                print("=== Auditory Calibration End ===\n")
+                calibration_done = True
+                break
+            if any(k.name == "space" for k in keys):
+                response_yes = TEXTS[language]["calibration_yes"]
+                catch_info = " (CATCH)" if is_catch_trial else ""
+                print(f"Trial {trial_idx}: {response_yes}{catch_info}")
+                response_detected = True
+                break
 
-        t_end = core.getTime() + 4.0
+        if calibration_done:
+            break
+
+        if not response_detected:
+            response_no = TEXTS[language]["calibration_no"]
+            catch_info = " (CATCH)" if is_catch_trial else ""
+            print(f"Trial {trial_idx}: {response_no} - timeout{catch_info}")
+
+        # Inter-trial interval
+        t_end = core.getTime() + 1.0
         while core.getTime() < t_end:
             check_escape()
             draw_fixation_only()
             win.flip()
 
-            keys = get_keys(["space", "escape"])
+            keys = get_keys(["return", "escape"])
             if any(k.name == "escape" for k in keys):
                 safe_quit()
-            if any(k.name == "space" for k in keys):
+            if any(k.name == "return" for k in keys):
+                print("=== Auditory Calibration End ===\n")
                 calibration_done = True
                 break
-
-    mouse_obj.setVisible(False)
 
     show_text_timed(
         TEXTS[language]["calibration_summary"],
@@ -1311,7 +1320,7 @@ def run_rt_trial(condition_trial, trial_idx):
     send_event(condition_trial + "_OFF", send_lsl=True, send_ttl=False)
 
     # Response detection window (1.5 sec after stimulus)
-    mouse = event.Mouse(win=win)
+    clear_keyboard()
     response_detected = False
     response_window_end = stim_offset + 1.5
 
@@ -1321,7 +1330,8 @@ def run_rt_trial(condition_trial, trial_idx):
         win.flip()
 
         if not response_detected and tactile_present:
-            if mouse.getPressed()[0]:  # Left mouse button
+            keys = get_keys(["space"])
+            if any(k.name == "space" for k in keys):
                 response_time = clock.getTime() - stim_onset
                 response_lsl_time = send_lsl_marker(TRIGGER_CODES["RT_RESPONSE"])
                 response_detected = True
@@ -1831,8 +1841,8 @@ def run_condition_task(cond, is_first=False):
 
 
 def run_rt_practice():
-    # Run 5 practice trials with all stimulus types (simple version, just like run_trial)
-    practice_trials = ["T", "AN", "AF", "ANT", "AFT"]
+    # Run 15 practice trials: 3 of each stimulus type
+    practice_trials = ["T", "AN", "AF", "ANT", "AFT"] * 3
 
     for trial_idx, cond_trial in enumerate(practice_trials):
         check_escape()
@@ -1842,22 +1852,22 @@ def run_rt_practice():
 
         # Send event and play sounds (same as run_trial)
         if cond_trial == "T":
-            print("RT Practice: T (tactile only)")
+            print("T:", end=" ")
             send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=DIGITIMER_TTL_CODE)
         elif cond_trial == "AN":
-            print("RT Practice: AN (near sound)")
+            print("AN:", end=" ")
             send_event(cond_trial, send_lsl=True, send_ttl=False)
             play_sound_obj(NOISE_RIGHT)
         elif cond_trial == "AF":
-            print("RT Practice: AF (far sound)")
+            print("AF:", end=" ")
             send_event(cond_trial, send_lsl=True, send_ttl=False)
             play_sound_obj(NOISE_LEFT)
         elif cond_trial == "ANT":
-            print("RT Practice: ANT (near sound + tactile)")
+            print("ANT:", end=" ")
             send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=DIGITIMER_TTL_CODE)
             play_sound_obj(NOISE_RIGHT)
         elif cond_trial == "AFT":
-            print("RT Practice: AFT (far sound + tactile)")
+            print("AFT:", end=" ")
             send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=DIGITIMER_TTL_CODE)
             play_sound_obj(NOISE_LEFT)
 
@@ -1869,9 +1879,36 @@ def run_rt_practice():
         # Offset marker
         send_event(cond_trial + "_OFF", send_lsl=True, send_ttl=False)
 
+        # Response detection window (1.5 sec after stimulus)
+        clear_keyboard()
+        response_detected = False
+        response_time = None
+        response_window_end = stim_offset + 1.5
+
+        while clock.getTime() < response_window_end:
+            check_escape()
+            draw_fixation_only()
+            win.flip()
+
+            if not response_detected:
+                keys = get_keys(["space"])
+                if any(k.name == "space" for k in keys):
+                    response_time = clock.getTime() - stim_onset
+                    response_detected = True
+                    if tactile_present:
+                        print(f"→ Response: {response_time:.3f}s ✓")
+                    else:
+                        print(f"→ Response: {response_time:.3f}s ✗")
+
+        if not response_detected:
+            if tactile_present:
+                print("→ No response ✗")
+            else:
+                print("→ No response ✓")
+
         # ISI
         isi = random.choice(ISI_VALUES_PPS)
-        trial_end = stim_offset + isi
+        trial_end = stim_offset + 1.5 + isi
         frame_loop_until(trial_end)
 
 def run_rt_block_task(is_first=True):
@@ -1963,6 +2000,14 @@ try:
         run_rt_block_task(is_first=True)
 
     run_condition_task(cond_1, is_first=True)
+
+    # Pause between conditions
+    show_instruction_space(
+        TEXTS[language]["condition_pause"],
+        TEXTS[language]["condition_pause_hint"],
+        start_key="CONDITION_PAUSE_START",
+        end_key="CONDITION_PAUSE_END"
+    )
 
     run_condition_task(cond_2, is_first=False)
 
