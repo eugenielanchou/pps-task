@@ -569,6 +569,7 @@ NOISE_RIGHT_PATH, NOISE_LEFT_PATH = make_audio_files()
 NOISE_RIGHT = sound.Sound(NOISE_RIGHT_PATH)
 NOISE_LEFT = sound.Sound(NOISE_LEFT_PATH)
 GONG = sound.Sound("tibetan-bowl.wav")
+MEDITATION_AUDIO = sound.Sound("conscience-ouverte.wav")
 
 def play_sound_obj(sound_obj):
     # Stop first to avoid overlap from previous trial
@@ -765,6 +766,21 @@ def show_baseline(seconds, send_markers=False, start_key="BASELINE_START", end_k
         check_escape()
         draw_fixation_only()
         win.flip()
+
+    if send_markers:
+        send_event(end_key, send_lsl=True, send_ttl=False)
+
+def show_baseline_with_audio(audio_obj, seconds, send_markers=False, start_key="BASELINE_START", end_key="BASELINE_END"):
+    if send_markers:
+        send_event(start_key, send_lsl=True, send_ttl=False)
+
+    audio_obj.play()
+    t_end = core.getTime() + seconds
+    while core.getTime() < t_end:
+        check_escape()
+        draw_fixation_only()
+        win.flip()
+    audio_obj.stop()
 
     if send_markers:
         send_event(end_key, send_lsl=True, send_ttl=False)
@@ -1579,8 +1595,8 @@ def run_condition_task(cond):
         # Gong sounds at the start of fixation
         GONG.play()
 
-        show_baseline(DURATION_RESTING_STATE_M, send_markers=True,
-                      start_key="RESTING_STATE_START", end_key="RESTING_STATE_END")
+        show_baseline_with_audio(MEDITATION_AUDIO, DURATION_RESTING_STATE_M, send_markers=True,
+                                 start_key="RESTING_STATE_START", end_key="RESTING_STATE_END")
 
         # Gong sounds at the end of fixation (before stimuli begin)
         GONG.play()
