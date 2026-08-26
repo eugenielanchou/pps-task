@@ -73,7 +73,7 @@ FEEDBACK_GOOD_MAX_ERROR = 2
 # Resting state and meditation
 DURATION_RESTING_STATE_MSG = 6.0  # intro message before the fixation cross, auto-timed (V condition only)
 DURATION_MEDITATION = 480.0  # 8 minutes fixation cross for M condition
-DURATION_BASELINE = 1.0  # (1202 minutes fixation cross for V condition
+DURATION_BASELINE = 1.0  # (METTRE 120) 2 minutes fixation cross for V condition
 DURATION_TASK_START_MSG = 3.0
 DURATION_MEDITATION_1 = 3.0
 DURATION_MEDITATION_2 = 3.0   # short "keep going" follow-up message
@@ -193,7 +193,7 @@ TEXTS = {
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
         "meditation_prepare": "Un gong va sonner, vous allez avoir une période de préparation : installez-vous dans l'état méditatif, videz votre esprit.\n\nPuis un second gong indiquera l'arrivée des sons et de la vibration. Restez en méditation du début à la fin.",
-        "meditation_prepare_control": "Quand l'audio se termine, les sons et la vibration arriveront. Essayez de conserver le même état de calme. Vous n'avez rien à faire avec les sons et la vibration, juste rester calme.",
+        "meditation_prepare_control": "Quand l'audio se termine, les sons et la vibration arriveront. Essayez de conserver le même état de calme. Vous n'avez rien à faire avec les sons et la vibration.\n\nGarder les yeux ouverts et fixer la croix.",
         "meditation_prepare_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
         "meditation_start_stimuli": "Les sons et la vibration vont maintenant arriver. Restez dans l'état de méditation.",
         "consigne_E_M": "Dans cette partie, nous vous invitons à méditer sur la Nature de l'Esprit pendant que les sons et la vibration arriveront.\n\nVous ne devrez rien faire par rapport aux sons et à la vibration, juste continuer à méditer sur la Nature de l'Esprit.\n\nGardez les yeux ouverts en fixant la croix blanche sur l'écran.",
@@ -265,7 +265,7 @@ TEXTS = {
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
         "meditation_prepare": "A gong will sound, and you will have a preparation period: settle into the meditative state and clear your mind.\n\nThen a second gong will signal the arrival of sounds and vibration. Remain in meditation from beginning to end.",
-        "meditation_prepare_control": "When the audio ends, sounds and vibration will arrive. Try to maintain the same calm state. You have nothing to do with the sounds and vibration, just remain calm.",
+        "meditation_prepare_control": "When the audio ends, sounds and vibration will arrive. Try to maintain the same calm state. You have nothing to do with the sounds and vibration.\n\nKeep your eyes open and fixed on the cross.",
         "meditation_prepare_hint": "Press the space bar when you are ready.",
         "meditation_start_stimuli": "Sounds and vibration will now arrive. Remain in the meditative state.",
         "consigne_E_M": "In this part, we invite you to meditate on the Nature of Mind while sounds and vibration arrive.\n\nYou should do nothing in response to the sounds and vibration—simply continue meditating on the Nature of Mind.\n\nKeep your eyes open and fixed on the white cross on the screen.",
