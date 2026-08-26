@@ -1593,14 +1593,16 @@ def run_condition_task(cond):
             start_key="MEDITATION_1_START", end_key="MEDITATION_1_END",
         )
 
-        # Gong sounds at the start of fixation
-        GONG.play()
+        # Gong sounds at the start of fixation (experts only)
+        if group == "E":
+            GONG.play()
 
         show_baseline_with_audio(MEDITATION_AUDIO, DURATION_RESTING_STATE_M, send_markers=True,
                                  start_key="RESTING_STATE_START", end_key="RESTING_STATE_END")
 
-        # Gong sounds at the end of fixation (before stimuli begin)
-        GONG.play()
+        # Gong sounds at the end of fixation (before stimuli begin, experts only)
+        if group == "E":
+            GONG.play()
 
         show_text_timed(TEXTS[language]["meditation_start_stimuli"], seconds=5.0, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
                          start_key="MEDITATION_2_START", end_key="MEDITATION_2_END")
@@ -1616,8 +1618,8 @@ def run_condition_task(cond):
 
         show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
 
-        # Gong at block start (M condition only)
-        if condition_task == "M":
+        # Gong at block start (M condition, experts only)
+        if condition_task == "M" and group == "E":
             GONG.play()
 
         send_event("BLOCK_START", send_lsl=True, send_ttl=False)
@@ -1640,8 +1642,8 @@ def run_condition_task(cond):
         if condition_task == "V":
             vigilance_task.stop()
 
-        # Gong at block end (M condition only)
-        if condition_task == "M":
+        # Gong at block end (M condition, experts only)
+        if condition_task == "M" and group == "E":
             GONG.play()
 
         block_t1 = clock.getTime()
