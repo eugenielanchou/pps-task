@@ -72,7 +72,7 @@ FEEDBACK_GOOD_MAX_ERROR = 2
 
 # Resting state and meditation
 DURATION_RESTING_STATE_MSG = 6.0  # intro message before the fixation cross, auto-timed (V condition only)
-DURATION_MEDITATION = 480.0  # 8 minutes fixation cross for M condition
+DURATION_MEDITATION = 4.0  # 8 minutes fixation cross for M condition
 DURATION_BASELINE = 1.0  # (METTRE 120) 2 minutes fixation cross for V condition
 DURATION_TASK_START_MSG = 3.0
 DURATION_VIGILANCE_1 = 3.0    # short instruction shown at the start of EACH V block
@@ -188,17 +188,17 @@ TEXTS = {
         # ===== TASK DESCRIPTIONS =====
         "task_intro_start": "L'expérience se déroulera en trois parties, séparées par de courtes pauses.\n\nLes sons et la vibration seront les mêmes dans chaque partie. Seul l'état dans lequel vous devrez être changera.\n\nLorsque cela vous sera indiqué, veuillez prendre l'iPad afin de répondre à quelques questions.",
        
-
-        # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
-        "meditation_prepare": "Un gong va sonner, vous allez avoir une période de préparation : installez-vous dans l'état méditatif, videz votre esprit.\n\nPuis un second gong indiquera l'arrivée des sons et de la vibration. Restez en méditation du début à la fin.",
-        "meditation_prepare_control": "Une fois l'audio terminé, vous allez entendre les sons et ressentir la vibration. Vous n'avez rien à faire, juste essayez de conserver le même état de calme que pendant l'audio.\n\nGarder les yeux ouverts et fixer la croix.",
-        "meditation_prepare_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
-        "meditation_start_stimuli": "Les sons et la vibration vont maintenant arriver. Restez dans l'état de méditation.",
         "consigne_E_M": "Dans cette partie, nous vous invitons à méditer sur la Nature de l'Esprit pendant que les sons et la vibration arriveront.\n\nVous ne devrez rien faire par rapport aux sons et à la vibration, juste continuer à méditer sur la Nature de l'Esprit.\n\nGardez les yeux ouverts en fixant la croix blanche sur l'écran.",
         "consigne_E_V": "Dans cette partie, essayez, si possible, de ne PAS chercher à reconnaître la Nature de l'Esprit.\n\nPour cela, portez simplement votre attention sur l'écran. Des fruits apparaîtront. Comptez mentalement le nombre de FRAISES que vous voyez.",
         "consigne_C_M": "Dans cette partie, vous allez écouter un audio pendant 8min qui vous guidera vers un état de calme. Laissez-vous guider par les instructions.",
         "consigne_C_V": "Dans cette partie, portez simplement votre attention sur l'écran. Des fruits apparaîtront.\n\nComptez mentalement le nombre de FRAISES que vous voyez.",
         "consigne_hint": "Lorsque vous êtes prêt, appuyez sur la barre d'espace pour commencer.",
+        
+        # ===== MEDITATION =====#
+        "meditation_prepare": "Un gong va sonner, vous allez avoir une période de préparation : installez-vous dans l'état méditatif, videz votre esprit.\n\nPuis un second gong indiquera l'arrivée des sons et de la vibration. Restez en méditation du début à la fin.",
+        "meditation_prepare_control": "Une fois l'audio terminé, vous allez entendre les sons et ressentir la vibration. Vous n'avez rien à faire, juste essayez de conserver le même état de calme que pendant l'audio.\n\nGarder les yeux ouverts et fixer la croix.",
+        "meditation_prepare_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
+        "meditation_start_stimuli": "Les sons et la vibration vont maintenant arriver. Restez dans l'état de méditation.", 
 
         # ===== RESTING STATE (once per condition) =====
         "resting_state_heading": "Nous allons commencer par une période de repos de 2 minutes.\n\nVeuillez simplement fixer la croix qui apparaîtra à l'écran. \n\nEssayer, si possible, de ne pas bouger.",
@@ -1583,8 +1583,13 @@ def run_condition_task(cond):
         if group == "E":
             GONG.play()
 
-        show_baseline_with_audio(MEDITATION_AUDIO, DURATION_MEDITATION, send_markers=True,
-                                 start_key="RESTING_STATE_START", end_key="RESTING_STATE_END")
+        # Meditation fixation: audio for controls, silent for experts
+        if group == "C":
+            show_baseline_with_audio(MEDITATION_AUDIO, DURATION_MEDITATION, send_markers=True,
+                                     start_key="RESTING_STATE_START", end_key="RESTING_STATE_END")
+        else:
+            show_baseline(DURATION_MEDITATION, send_markers=True,
+                         start_key="RESTING_STATE_START", end_key="RESTING_STATE_END")
 
         # Gong sounds at the end of fixation (before stimuli begin, experts only)
         if group == "E":
