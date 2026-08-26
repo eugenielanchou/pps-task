@@ -193,12 +193,12 @@ TEXTS = {
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
         "meditation_prepare": "Un gong va sonner, vous allez avoir une période de préparation : installez-vous dans l'état méditatif, videz votre esprit.\n\nPuis un second gong indiquera l'arrivée des sons et de la vibration. Restez en méditation du début à la fin.",
-        "meditation_prepare_control": "Vous allez avoir une période de préparation. Un audio vous guidera progressivement vers l'état de calme. Laissez-vous guider par les instructions.",
+        "meditation_prepare_control": "Quand l'audio se termine, les sons et la vibration arriveront. Essayez de conserver le même état de calme. Vous n'avez rien à faire avec les sons et la vibration, juste rester calme.",
         "meditation_prepare_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
         "meditation_start_stimuli": "Les sons et la vibration vont maintenant arriver. Restez dans l'état de méditation.",
         "consigne_E_M": "Dans cette partie, nous vous invitons à méditer sur la Nature de l'Esprit pendant que les sons et la vibration arriveront.\n\nVous ne devrez rien faire par rapport aux sons et à la vibration, juste continuer à méditer sur la Nature de l'Esprit.\n\nGardez les yeux ouverts en fixant la croix blanche sur l'écran.",
         "consigne_E_V": "Dans cette partie, essayez, si possible, de ne PAS chercher à reconnaître la Nature de l'Esprit.\n\nPour cela, portez simplement votre attention sur l'écran. Des fruits apparaîtront. Comptez mentalement le nombre de FRAISES que vous voyez.",
-        "consigne_C_M": "Dans cette partie, vous allez écouter un audio qui vous guidera progressivement, étape par étape, vers un état de calme. Laissez-vous guider par les instructions, sans chercher à faire quoi que ce soit de particulier.",
+        "consigne_C_M": "Dans cette partie, vous allez écouter un audio pendant 8min qui vous guidera vers un état de calme. Laissez-vous guider par les instructions.",
         "consigne_C_V": "Dans cette partie, portez simplement votre attention sur l'écran. Des fruits apparaîtront.\n\nComptez mentalement le nombre de FRAISES que vous voyez.",
         "consigne_hint": "Lorsque vous êtes prêt, appuyez sur la barre d'espace pour commencer.",
 
@@ -265,12 +265,12 @@ TEXTS = {
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
         "meditation_prepare": "A gong will sound, and you will have a preparation period: settle into the meditative state and clear your mind.\n\nThen a second gong will signal the arrival of sounds and vibration. Remain in meditation from beginning to end.",
-        "meditation_prepare_control": "You will have a preparation period. An audio recording will guide you progressively towards a state of calm. Let yourself be guided by the instructions.",
+        "meditation_prepare_control": "When the audio ends, sounds and vibration will arrive. Try to maintain the same calm state. You have nothing to do with the sounds and vibration, just remain calm.",
         "meditation_prepare_hint": "Press the space bar when you are ready.",
         "meditation_start_stimuli": "Sounds and vibration will now arrive. Remain in the meditative state.",
         "consigne_E_M": "In this part, we invite you to meditate on the Nature of Mind while sounds and vibration arrive.\n\nYou should do nothing in response to the sounds and vibration—simply continue meditating on the Nature of Mind.\n\nKeep your eyes open and fixed on the white cross on the screen.",
         "consigne_E_V": "In this part, try, if possible, NOT to seek out the Nature of Mind.\n\nTo help with this, simply focus your attention on the screen. Fruits will appear. Mentally count the number of STRAWBERRIES you see.",
-        "consigne_C_M": "In this part, you will listen to an audio recording that will guide you progressively, step by step, towards a state of calm. Let yourself be guided by the instructions, without trying to do anything in particular.",
+        "consigne_C_M": "In this part, you will listen to an 8-minute audio recording that will guide you towards a state of calm. Let yourself be guided by the instructions.",
         "consigne_C_V": "In this part, simply focus your attention on the screen. Fruits will appear.\n\nMentally count the number of STRAWBERRIES you see.",
         "consigne_hint": "When you are ready, press the space bar to begin.",
 
