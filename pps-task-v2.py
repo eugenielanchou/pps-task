@@ -75,8 +75,6 @@ DURATION_RESTING_STATE_MSG = 6.0  # intro message before the fixation cross, aut
 DURATION_MEDITATION = 480.0  # 8 minutes fixation cross for M condition
 DURATION_BASELINE = 1.0  # (METTRE 120) 2 minutes fixation cross for V condition
 DURATION_TASK_START_MSG = 3.0
-DURATION_MEDITATION_1 = 3.0
-DURATION_MEDITATION_2 = 3.0   # short "keep going" follow-up message
 DURATION_VIGILANCE_1 = 3.0    # short instruction shown at the start of EACH V block
 DURATION_END = 3.0            # final "thank you" screen, auto-timed
 
@@ -193,7 +191,7 @@ TEXTS = {
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
         "meditation_prepare": "Un gong va sonner, vous allez avoir une période de préparation : installez-vous dans l'état méditatif, videz votre esprit.\n\nPuis un second gong indiquera l'arrivée des sons et de la vibration. Restez en méditation du début à la fin.",
-        "meditation_prepare_control": "Quand l'audio se termine, les sons et la vibration arriveront. Essayez de conserver le même état de calme. Vous n'avez rien à faire avec les sons et la vibration.\n\nGarder les yeux ouverts et fixer la croix.",
+        "meditation_prepare_control": "Une fois l'audio terminé, vous allez entendre les sons et ressentir la vibration. Vous n'avez rien à faire, juste essayez de conserver le même état de calme que pendant l'audio.\n\nGarder les yeux ouverts et fixer la croix.",
         "meditation_prepare_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
         "meditation_start_stimuli": "Les sons et la vibration vont maintenant arriver. Restez dans l'état de méditation.",
         "consigne_E_M": "Dans cette partie, nous vous invitons à méditer sur la Nature de l'Esprit pendant que les sons et la vibration arriveront.\n\nVous ne devrez rien faire par rapport aux sons et à la vibration, juste continuer à méditer sur la Nature de l'Esprit.\n\nGardez les yeux ouverts en fixant la croix blanche sur l'écran.",
@@ -203,11 +201,7 @@ TEXTS = {
         "consigne_hint": "Lorsque vous êtes prêt, appuyez sur la barre d'espace pour commencer.",
 
         # ===== RESTING STATE (once per condition) =====
-        "resting_state_heading": "Nous allons commencer par une période de repos de 2 minutes.\n\nVeuillez simplement fixer la croix qui apparaîtra à l'écran. Essayer, si possible, de ne pas bouger.",
-
-        # ===== PER-BLOCK PROMPTS (Méditation) =====
-        "meditation_1": "Méditation",
-        "meditation_2": "Continuez, en fixant la croix.",
+        "resting_state_heading": "Nous allons commencer par une période de repos de 2 minutes.\n\nVeuillez simplement fixer la croix qui apparaîtra à l'écran. \n\nEssayer, si possible, de ne pas bouger.",
 
         # ===== PER-BLOCK PROMPTS (Vigilance) =====
         "vigilance_1": "Fixez la croix, les fruits vont apparaître sur la croix.",
@@ -265,7 +259,7 @@ TEXTS = {
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
         "meditation_prepare": "A gong will sound, and you will have a preparation period: settle into the meditative state and clear your mind.\n\nThen a second gong will signal the arrival of sounds and vibration. Remain in meditation from beginning to end.",
-        "meditation_prepare_control": "When the audio ends, sounds and vibration will arrive. Try to maintain the same calm state. You have nothing to do with the sounds and vibration.\n\nKeep your eyes open and fixed on the cross.",
+        "meditation_prepare_control": "Once the audio ends, you will hear sounds and feel vibration. You have nothing to do—just try to maintain the same calm state you had during the audio.\n\nKeep your eyes open and fixed on the cross.",
         "meditation_prepare_hint": "Press the space bar when you are ready.",
         "meditation_start_stimuli": "Sounds and vibration will now arrive. Remain in the meditative state.",
         "consigne_E_M": "In this part, we invite you to meditate on the Nature of Mind while sounds and vibration arrive.\n\nYou should do nothing in response to the sounds and vibration—simply continue meditating on the Nature of Mind.\n\nKeep your eyes open and fixed on the white cross on the screen.",
@@ -276,10 +270,6 @@ TEXTS = {
 
         # ===== RESTING STATE (once per condition) =====
         "resting_state_heading": "We will start with a 2-minute resting period.\n\nPlease simply fixate on the cross that will appear on the screen. Try, if possible, not to move.",
-
-        # ===== PER-BLOCK PROMPTS (Meditation) =====
-        "meditation_1": "Meditation time",
-        "meditation_2": "Keep going, fixating on the cross.",
 
         # ===== PER-BLOCK PROMPTS (Vigilance) =====
         "vigilance_1": "Fixate on the cross, fruits will appear on it.",
@@ -811,12 +801,6 @@ def show_after_block(cond):
     key_name = "after_block_V" if cond == "V" else "after_block_M"
     show_text_timed(TEXTS[language][key_name], seconds=DURATION_AFTER_BLOCK, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
                      start_key="AFTER_BLOCK_START", end_key="AFTER_BLOCK_END")
-
-def show_meditation_prompt():
-    show_text_timed(TEXTS[language]["meditation_1"], seconds=DURATION_MEDITATION_1, height=48, wrap=TEXT_WRAP,
-                     start_key="MEDITATION_1_START", end_key="MEDITATION_1_END")
-    show_text_timed(TEXTS[language]["meditation_2"], seconds=DURATION_MEDITATION_2, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
-                     start_key="MEDITATION_2_START", end_key="MEDITATION_2_END")
 
 def show_vigilance_prompt():
     show_text_timed(TEXTS[language]["vigilance_1"], seconds=DURATION_VIGILANCE_1, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
