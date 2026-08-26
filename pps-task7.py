@@ -68,28 +68,17 @@ FIXATION_BEFORE_BLOCK = 7.0
 DURATION_END_BLOCK = 1.0
 DURATION_AFTER_BLOCK = 2.0  # inter-block message (after_block_M/V/rt), auto-timed
 DURATION_FEEDBACK = 1.5
-# Strawberry-count error tiers: 0 -> well_done, 1-2 -> good, >2 -> try_harder
 FEEDBACK_GOOD_MAX_ERROR = 2
 
 # Resting state and meditation
-DURATION_RESTING_STATE_MSG = 4.0  # intro message before the fixation cross, auto-timed
-DURATION_RESTING_STATE = 2.0  # 2 minutes, fixation cross 2SEC POUR TESTER? A CHANGER; 
+DURATION_RESTING_STATE_MSG = 6.0  # intro message before the fixation cross, auto-timed (V condition only)
+DURATION_RESTING_STATE_M = 20.0  # 8 minutes fixation cross for M condition
+DURATION_RESTING_STATE_V = 1.0  # 2 minutes fixation cross for V condition (was 2.0 for testing)
 DURATION_TASK_START_MSG = 3.0
-DURATION_MEDITATION_1 = 60.0  # meditation prompt, shown at the start of EACH M block.
-# NOTE: shown before EACH of the NUM_BLOCKS_PPS blocks (not once per
-# condition), so total meditation settling time per M condition is
-# DURATION_MEDITATION_1 x NUM_BLOCKS_PPS. 60s is a placeholder test value -
-# set to whatever real settling duration you want per block before data
-# collection (was 480s/8min when this was a once-per-condition prep).
-DURATION_MEDITATION_2 = 1.0   # short "keep going" follow-up message
-DURATION_VIGILANCE_1 = 1.0    # short instruction shown at the start of EACH V block
+DURATION_MEDITATION_1 = 3.0
+DURATION_MEDITATION_2 = 3.0   # short "keep going" follow-up message
+DURATION_VIGILANCE_1 = 3.0    # short instruction shown at the start of EACH V block
 DURATION_END = 3.0            # final "thank you" screen, auto-timed
-
-# RT response classification
-# Below this, a "response" is almost certainly an anticipation/guess rather
-# than a genuine reaction to the tactile stimulus (simple RT floor ~100-150ms).
-MIN_PLAUSIBLE_RT = 0.15
-RESPONSE_WINDOW_RT = 1.5  # seconds after stimulus offset during which a keypress counts
 
 # ============================================================
 # DISPLAY PARAMETERS
@@ -154,16 +143,9 @@ TRIGGER_CODES = {
     "RT_RESPONSE": 133,
     "MEDITATION_CLICK": 140,
 
-    # Fired at the start/end of each M/V condition block specifically
-    # (was previously misleadingly named EXP_START/EXP_END, even though
-    # it fires twice per session, once per condition - not once for the
-    # whole experiment).
     "CONDITION_START": 141,
     "CONDITION_END": 142,
 
-    # Per-block prompts (méditation/vigilance) and inter-block message -
-    # these were referenced in the display functions but missing here,
-    # which would crash with a KeyError the first time each was called.
     "MEDITATION_1_START": 143,
     "MEDITATION_1_END": 144,
     "MEDITATION_2_START": 145,
@@ -193,26 +175,27 @@ TEXTS = {
         "participant_hint": "Tapez l'identifiant, puis appuyez sur la barre d'espace.",
         "group_heading": "Le groupe :",
         "condition_heading": "La condition :",
+        "rt_timing_heading": "Le RT :",
 
         # ===== FAMILIARIZATION =====
         "intro_hint": "Cliquer sur la barre d'espace.",
         "famil_intro": "Au cours de cette expérience, vous entendrez des sons provenant de deux enceintes et ressentirez une légère vibration au niveau du torse.\n\nNous allons d'abord vous familiariser avec ces différentes sensations.",
-        "famil_near": "Vous allez maintenant entendre le son PROCHE.",
-        "famil_far": "Vous allez maintenant entendre le son LOINTAIN.",
+        "famil_near": "Vous allez maintenant entendre le son \nPROCHE.",
+        "famil_far": "Vous allez maintenant entendre le son \nLOINTAIN.",
         "famil_sound_hint": "Appuyez sur la barre d'espace pour l'écouter.",
         "famil_tactile": "Vous allez maintenant ressentir la vibration.",
         "famil_tactile_hint": "Appuyez sur la barre d'espace pour la ressentir.",
-        "famil_repeat_question": "Souhaitez-vous réécouter/ressentir à nouveau ?",
+        "famil_repeat_question": "Souhaitez-vous recommencer ?",
 
-        # ===== TASK DESCRIPTIONS (for dynamic task order) =====
+        # ===== TASK DESCRIPTIONS =====
         "task_intro_start": "L'expérience se déroulera en trois parties, séparées par de courtes pauses.\n\nLes sons et la vibration seront les mêmes dans chaque partie. Seul l'état dans lequel vous devrez être changera.\n\nLorsque cela vous sera indiqué, veuillez prendre l'iPad afin de répondre à quelques questions.",
-        "task_rt_desc": "Vous devrez réagir aussi rapidement que possible en appuyant sur la barre d'espace dès que vous ressentez la vibration.",
-        "task_m_desc": "Vous devrez entrer dans un état de méditation et fixer la croix à l'écran.",
-        "task_v_desc": "Vous devrez compter mentalement le nombre de fraises qui défilent à l'écran.",
+       
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
-        "task_will_start": "La tâche va commencer maintenant.",
-        "consigne_E_M": "Dans cette partie, nous vous invitons à méditer sur la Nature de l'Esprit.\n\nUn temps de préparation vous sera laissé avant le début des sons et des vibrations.\n\nEssayez ensuite de rester dans cet état tout au long de cette partie.",
+        "meditation_prepare": "Un gong va sonner, vous allez avoir une période de préparation : installez-vous dans l'état méditatif, videz votre esprit.\n\nPuis un second gong indiquera l'arrivée des sons et de la vibration. Restez en méditation du début à la fin.",
+        "meditation_prepare_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
+        "meditation_start_stimuli": "Les sons et la vibration vont maintenant arriver. Restez dans l'état de méditation.",
+        "consigne_E_M": "Dans cette partie, nous vous invitons à méditer sur la Nature de l'Esprit pendant que les sons et la vibration arriveront.\n\nVous ne devrez rien faire par rapport aux sons et à la vibration, juste continuer à méditer sur la Nature de l'Esprit.\n\nGardez les yeux ouverts en fixant la croix blanche sur l'écran.",
         "consigne_E_V": "Dans cette partie, essayez, si possible, de ne PAS chercher à reconnaître la Nature de l'Esprit.\n\nPour cela, portez simplement votre attention sur l'écran. Des fruits apparaîtront. Comptez mentalement le nombre de FRAISES que vous voyez.",
         "consigne_C_M": "Dans cette partie, vous allez écouter un audio qui vous guidera progressivement, étape par étape, vers un état de calme. Laissez-vous guider par les instructions, sans chercher à faire quoi que ce soit de particulier.",
         "consigne_C_V": "Dans cette partie, portez simplement votre attention sur l'écran. Des fruits apparaîtront.\n\nComptez mentalement le nombre de FRAISES que vous voyez.",
@@ -222,7 +205,7 @@ TEXTS = {
         "resting_state_heading": "Nous allons commencer par une période de repos de 2 minutes.\n\nVeuillez simplement fixer la croix qui apparaîtra à l'écran. Essayer, si possible, de ne pas bouger.",
 
         # ===== PER-BLOCK PROMPTS (Méditation) =====
-        "meditation_1": "Méditation.",
+        "meditation_1": "Méditation",
         "meditation_2": "Continuez, en fixant la croix.",
 
         # ===== PER-BLOCK PROMPTS (Vigilance) =====
@@ -263,6 +246,7 @@ TEXTS = {
         "participant_hint": "Type the ID, then press the space bar.",
         "group_heading": "Group:",
         "condition_heading": "Condition:",
+        "rt_timing_heading": "RT :",
 
         # ===== FAMILIARIZATION =====
         "intro_hint": "Press the space bar.",
@@ -272,17 +256,17 @@ TEXTS = {
         "famil_sound_hint": "Press the space bar to listen.",
         "famil_tactile": "You will now feel the vibration.",
         "famil_tactile_hint": "Press the space bar to feel it.",
-        "famil_repeat_question": "Would you like to hear/feel it again?",
+        "famil_repeat_question": "Would you like to do it again?",
 
-        # ===== TASK DESCRIPTIONS (for dynamic task order) =====
+        # ===== TASK DESCRIPTIONS =====
         "task_intro_start": "The experiment will unfold in three parts, separated by short breaks.\n\nThe sounds and vibration will be the same in each part. Only the state you must be in will change.\n\nWhen indicated, please take the iPad to answer a few questions.",
-        "task_rt_desc": "You must react as quickly as possible by pressing the space bar as soon as you feel the vibration.",
-        "task_m_desc": "You must enter a meditative state and fix your eyes on the cross on the screen.",
-        "task_v_desc": "You must mentally count the number of strawberries that appear on the screen.",
+
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
-        "task_will_start": "The task will now begin.",
-        "consigne_E_M": "In this part, we invite you to meditate on the Nature of Mind.\n\nYou will be given a preparation period before the sounds and vibrations begin.\n\nThen try to remain in this state throughout this part.",
+        "meditation_prepare": "A gong will sound, and you will have a preparation period: settle into the meditative state and clear your mind.\n\nThen a second gong will signal the arrival of sounds and vibration. Remain in meditation from beginning to end.",
+        "meditation_prepare_hint": "Press the space bar when you are ready.",
+        "meditation_start_stimuli": "Sounds and vibration will now arrive. Remain in the meditative state.",
+        "consigne_E_M": "In this part, we invite you to meditate on the Nature of Mind while sounds and vibration arrive.\n\nYou should do nothing in response to the sounds and vibration—simply continue meditating on the Nature of Mind.\n\nKeep your eyes open and fixed on the white cross on the screen.",
         "consigne_E_V": "In this part, try, if possible, NOT to seek out the Nature of Mind.\n\nTo help with this, simply focus your attention on the screen. Fruits will appear. Mentally count the number of STRAWBERRIES you see.",
         "consigne_C_M": "In this part, you will listen to an audio recording that will guide you progressively, step by step, towards a state of calm. Let yourself be guided by the instructions, without trying to do anything in particular.",
         "consigne_C_V": "In this part, simply focus your attention on the screen. Fruits will appear.\n\nMentally count the number of STRAWBERRIES you see.",
@@ -292,7 +276,7 @@ TEXTS = {
         "resting_state_heading": "We will start with a 2-minute resting period.\n\nPlease simply fixate on the cross that will appear on the screen. Try, if possible, not to move.",
 
         # ===== PER-BLOCK PROMPTS (Meditation) =====
-        "meditation_1": "Meditation.",
+        "meditation_1": "Meditation time",
         "meditation_2": "Keep going, fixating on the cross.",
 
         # ===== PER-BLOCK PROMPTS (Vigilance) =====
@@ -372,6 +356,7 @@ condition_task = ""  # "M" = meditation, "V" = vigilance
 pp_id = ""
 session_dt = ""
 vigilance_task = None
+rt_timing = ""  # "before" or "after" - when RT block runs relative to M/V conditions
 
 # ============================================================
 # BASIC UTILITIES
@@ -583,6 +568,7 @@ def make_audio_files():
 NOISE_RIGHT_PATH, NOISE_LEFT_PATH = make_audio_files()
 NOISE_RIGHT = sound.Sound(NOISE_RIGHT_PATH)
 NOISE_LEFT = sound.Sound(NOISE_LEFT_PATH)
+GONG = sound.Sound("tibetan-bowl.wav")
 
 def play_sound_obj(sound_obj):
     # Stop first to avoid overlap from previous trial
@@ -784,23 +770,18 @@ def show_baseline(seconds, send_markers=False, start_key="BASELINE_START", end_k
         send_event(end_key, send_lsl=True, send_ttl=False)
 
 def show_resting_state():
-    """Now called once per condition (M and V), not once globally: intro
-    message (auto-timed) -> 2-minute fixation cross -> "task will start"
-    message (auto-timed)."""
+    """Called once per V condition: intro message (auto-timed) -> 2-minute
+    fixation cross -> "task will start" message (auto-timed)."""
     show_text_timed(
         TEXTS[language]["resting_state_heading"], seconds=DURATION_RESTING_STATE_MSG,
         height=TEXT_HEIGHT, wrap=TEXT_WRAP,
         start_key="RESTING_STATE_INSTR_START", end_key="RESTING_STATE_INSTR_END",
     )
     show_baseline(
-        DURATION_RESTING_STATE,
+        DURATION_RESTING_STATE_V,
         send_markers=True,
         start_key="RESTING_STATE_START",
         end_key="RESTING_STATE_END",
-    )
-    show_text_timed(
-        TEXTS[language]["task_will_start"], seconds=DURATION_TASK_START_MSG, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
-        start_key="TASK_START_MSG_START", end_key="TASK_START_MSG_END",
     )
 
 def show_end_of_block_screen(block_idx):
@@ -1251,7 +1232,7 @@ def run_rt_trial(condition_trial, trial_idx, block_idx=0):
     # trials (false alarms) are captured rather than silently dropped.
     clear_keyboard()
     response_detected = False
-    response_window_end = stim_offset + RESPONSE_WINDOW_RT
+    response_window_end = stim_offset + 1.5
 
     while clock.getTime() < response_window_end:
         check_escape()
@@ -1265,22 +1246,7 @@ def run_rt_trial(condition_trial, trial_idx, block_idx=0):
                 response_lsl_time = send_lsl_marker(TRIGGER_CODES["RT_RESPONSE"])
                 response_detected = True
 
-    # Classify the response:
-    # - "hit": tactile present, responded, plausible RT
-    # - "anticipation": responded faster than physiologically plausible
-    #   (likely a guess/anticipation rather than a real reaction)
-    # - "miss": tactile present, no response ("oubli")
-    # - "false_alarm": tactile absent, responded anyway
-    # - "correct_rejection": tactile absent, correctly withheld response
-    if tactile_present:
-        if response_detected and response_time >= MIN_PLAUSIBLE_RT:
-            response_type = "hit"
-        elif response_detected:
-            response_type = "anticipation"
-        else:
-            response_type = "miss"
-    else:
-        response_type = "false_alarm" if response_detected else "correct_rejection"
+    response_type = "response" if response_detected else "no_response"
 
     # Inter-stimulus interval
     isi = random.choice(ISI_VALUES_PPS)
@@ -1510,33 +1476,25 @@ condition_task = select_single_key(
 print(f"Condition: {condition_task}")
 
 # ============================================================
+# RT TIMING SELECTION (before or after M/V conditions)
+rt_timing_choice = select_single_key(
+    TEXTS[language]["rt_timing_heading"],
+    valid_keys=["1", "2"],
+)
+rt_timing = "before" if rt_timing_choice == "1" else "after"
+print(f"RT Timing: {rt_timing}")
+
+# ============================================================
 # STIMULUS FAMILIARIZATION
-# Note: the RT block always runs last, after both M and V condition blocks,
-# so no before/after position choice is needed anymore. Participants are
-# already familiar with the stimuli by then (familiarization + the M/V
-# blocks), so no separate RT practice/training phase is run either.
 show_stimulus_familiarization()
 
 # ============================================================
-# BUILD DYNAMIC TASK ORDER TEXT
+# CONDITION ORDER
 cond_1 = condition_task
 cond_2 = "V" if cond_1 == "M" else "M"
 
-# RT block always runs last now (see note above)
-task_order = [cond_1, cond_2, "RT"]
-
-task_descriptions = {
-    "RT": TEXTS[language]["task_rt_desc"],
-    "M": TEXTS[language]["task_m_desc"],
-    "V": TEXTS[language]["task_v_desc"],
-}
-
-task_order_text = TEXTS[language]["task_intro_start"]
-# for i, task in enumerate(task_order, 1):
-#     task_order_text += f"\n\n{i}. {task_descriptions[task]}"
-
 show_instruction_space(
-    task_order_text,
+    TEXTS[language]["task_intro_start"],
     TEXTS[language]["intro_hint"],
 )
 
@@ -1584,6 +1542,21 @@ def run_condition_task(cond):
     vigilance_task = VigilanceTaskContinuous(win) if condition_task == "V" else None
     all_blocks = build_experiment()
 
+    # All conditions start with resting state intro
+    show_text_timed(
+        TEXTS[language]["resting_state_heading"], seconds=DURATION_RESTING_STATE_MSG,
+        height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+        start_key="RESTING_STATE_INSTR_START", end_key="RESTING_STATE_INSTR_END",
+    )
+
+    # Resting state fixation baseline (2 minutes for all conditions)
+    show_baseline(
+        DURATION_RESTING_STATE_V,
+        send_markers=True,
+        start_key="RESTING_STATE_START",
+        end_key="RESTING_STATE_END",
+    )
+
     # Determine the correct instruction key based on group and condition.
     instruction_key = f"consigne_{group}_{condition_task}"
 
@@ -1594,18 +1567,34 @@ def run_condition_task(cond):
         start_key=consigne_start_key, end_key=consigne_end_key,
     )
 
-    # Resting state: now shown once per condition (not once globally).
-    show_resting_state()
+    # Condition-specific preparation
+    if condition_task == "M":
+        # M condition: prepare meditation → long fixation (8 min) → ready to start
+        show_instruction_space(
+            TEXTS[language]["meditation_prepare"],
+            TEXTS[language]["meditation_prepare_hint"],
+            start_key="MEDITATION_1_START", end_key="MEDITATION_1_END",
+        )
+
+        # Gong sounds at the start of fixation
+        GONG.play()
+
+        show_baseline(DURATION_RESTING_STATE_M, send_markers=True,
+                      start_key="RESTING_STATE_START", end_key="RESTING_STATE_END")
+
+        # Gong sounds at the end of fixation (before stimuli begin)
+        GONG.play()
+
+        show_text_timed(TEXTS[language]["meditation_start_stimuli"], seconds=5.0, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+                         start_key="MEDITATION_2_START", end_key="MEDITATION_2_END")
 
     send_event("CONDITION_START", send_lsl=True, send_ttl=False)
 
     for block_idx, block in enumerate(all_blocks):
         print(f"\nStart block {block_idx + 1}/{NUM_BLOCKS_PPS}")
 
-        # Condition-specific settling prompt at the start of each block.
-        if condition_task == "M":
-            show_meditation_prompt()
-        else:
+        # For V condition only: vigilance prompt before each block
+        if condition_task == "V":
             show_vigilance_prompt()
 
         show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
@@ -1706,13 +1695,6 @@ def run_rt_block_task():
         TEXTS[language]["consigne_hint"],
     )
 
-    show_text_timed(
-        TEXTS[language]["task_will_start"],
-        seconds=DURATION_TASK_START_MSG,
-        height=TEXT_HEIGHT,
-        wrap=TEXT_WRAP,
-    )
-
     send_event("RT_BLOCK_START", send_lsl=True, send_ttl=False)
     show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
 
@@ -1756,20 +1738,36 @@ try:
     # Resting state is now shown once per condition, inside run_condition_task
     # (see show_resting_state), not once globally here.
 
-    run_condition_task(cond_1)
+    if rt_timing == "before":
+        # RT block runs FIRST, before M and V conditions
+        run_rt_block_task()
 
-    # Short break between the two M/V condition blocks
-    show_condition_transition_pause()
+        # Short break before the first M/V condition
+        show_condition_transition_pause()
 
-    run_condition_task(cond_2)
+        run_condition_task(cond_1)
 
-    # Short break before the final RT block
-    show_pre_rt_pause()
+        # Short break between the two M/V condition blocks
+        show_condition_transition_pause()
 
-    # RT block always runs last: participants are already familiar with
-    # the stimuli (familiarization + both M/V blocks), so no separate
-    # practice/training phase is needed here.
-    run_rt_block_task()
+        run_condition_task(cond_2)
+
+    else:
+        # RT block runs LAST, after both M and V conditions (default)
+        run_condition_task(cond_1)
+
+        # Short break between the two M/V condition blocks
+        show_condition_transition_pause()
+
+        run_condition_task(cond_2)
+
+        # Short break before the final RT block
+        show_pre_rt_pause()
+
+        # RT block runs last: participants are already familiar with
+        # the stimuli (familiarization + both M/V blocks), so no separate
+        # practice/training phase is needed here.
+        run_rt_block_task()
 
 finally:
     save_logs_now()
