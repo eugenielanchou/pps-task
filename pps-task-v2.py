@@ -71,9 +71,9 @@ DURATION_FEEDBACK = 1.5
 FEEDBACK_GOOD_MAX_ERROR = 2
 
 # Resting state and meditation
-DURATION_MEDITATIONSG = 6.0  # intro message before the fixation cross, auto-timed (V condition only)
+DURATION_RESTING_STATE_MSG = 6.0  # intro message before the fixation cross, auto-timed (V condition only)
 DURATION_MEDITATION = 480.0  # 8 minutes fixation cross for M condition
-DURATION_BASELINE = 1.0  # 2 minutes fixation cross for V condition (was 2.0 for testing)
+DURATION_BASELINE = 1.0  # (1202 minutes fixation cross for V condition
 DURATION_TASK_START_MSG = 3.0
 DURATION_MEDITATION_1 = 3.0
 DURATION_MEDITATION_2 = 3.0   # short "keep going" follow-up message
@@ -791,7 +791,7 @@ def show_resting_state():
     """Called once per V condition: intro message (auto-timed) -> 2-minute
     fixation cross -> "task will start" message (auto-timed)."""
     show_text_timed(
-        TEXTS[language]["resting_state_heading"], seconds=DURATION_MEDITATIONSG,
+        TEXTS[language]["resting_state_heading"], seconds=DURATION_RESTING_STATE_MSG,
         height=TEXT_HEIGHT, wrap=TEXT_WRAP,
         start_key="RESTING_STATE_INSTR_START", end_key="RESTING_STATE_INSTR_END",
     )
@@ -1562,7 +1562,7 @@ def run_condition_task(cond):
 
     # All conditions start with resting state intro
     show_text_timed(
-        TEXTS[language]["resting_state_heading"], seconds=DURATION_MEDITATIONSG,
+        TEXTS[language]["resting_state_heading"], seconds=DURATION_RESTING_STATE_MSG,
         height=TEXT_HEIGHT, wrap=TEXT_WRAP,
         start_key="RESTING_STATE_INSTR_START", end_key="RESTING_STATE_INSTR_END",
     )
