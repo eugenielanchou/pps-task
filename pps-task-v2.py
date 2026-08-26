@@ -1614,6 +1614,11 @@ def run_condition_task(cond):
             show_vigilance_prompt()
 
         show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
+
+        # Gong at block start (M condition only)
+        if condition_task == "M":
+            GONG.play()
+
         send_event("BLOCK_START", send_lsl=True, send_ttl=False)
         block_t0 = clock.getTime()
 
@@ -1633,6 +1638,10 @@ def run_condition_task(cond):
 
         if condition_task == "V":
             vigilance_task.stop()
+
+        # Gong at block end (M condition only)
+        if condition_task == "M":
+            GONG.play()
 
         block_t1 = clock.getTime()
         block_duration = block_t1 - block_t0
