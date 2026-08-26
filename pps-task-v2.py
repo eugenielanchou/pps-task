@@ -32,7 +32,7 @@ from psychopy.hardware import keyboard
 # GLOBAL FLAGS
 LSL_AVAILABLE = True
 SERIAL_AVAILABLE = True
-ARDUINO_ENABLED = True
+ARDUINO_ENABLED = False
 
 # GENERAL PATHS
 DATA_DIR = "data"
@@ -570,6 +570,7 @@ NOISE_RIGHT = sound.Sound(NOISE_RIGHT_PATH)
 NOISE_LEFT = sound.Sound(NOISE_LEFT_PATH)
 GONG = sound.Sound(os.path.join(AUDIO_DIR, "tibetan-bowl.wav"))
 MEDITATION_AUDIO = sound.Sound(os.path.join(AUDIO_DIR, "conscience-ouverte.wav"))
+MEDITATION_AUDIO.volume = 0.8
 
 def play_sound_obj(sound_obj):
     # Stop first to avoid overlap from previous trial
