@@ -193,6 +193,7 @@ TEXTS = {
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
         "meditation_prepare": "Un gong va sonner, vous allez avoir une période de préparation : installez-vous dans l'état méditatif, videz votre esprit.\n\nPuis un second gong indiquera l'arrivée des sons et de la vibration. Restez en méditation du début à la fin.",
+        "meditation_prepare_control": "Vous allez avoir une période de préparation. Un audio vous guidera progressivement vers l'état de calme. Laissez-vous guider par les instructions.",
         "meditation_prepare_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
         "meditation_start_stimuli": "Les sons et la vibration vont maintenant arriver. Restez dans l'état de méditation.",
         "consigne_E_M": "Dans cette partie, nous vous invitons à méditer sur la Nature de l'Esprit pendant que les sons et la vibration arriveront.\n\nVous ne devrez rien faire par rapport aux sons et à la vibration, juste continuer à méditer sur la Nature de l'Esprit.\n\nGardez les yeux ouverts en fixant la croix blanche sur l'écran.",
@@ -264,6 +265,7 @@ TEXTS = {
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
         "meditation_prepare": "A gong will sound, and you will have a preparation period: settle into the meditative state and clear your mind.\n\nThen a second gong will signal the arrival of sounds and vibration. Remain in meditation from beginning to end.",
+        "meditation_prepare_control": "You will have a preparation period. An audio recording will guide you progressively towards a state of calm. Let yourself be guided by the instructions.",
         "meditation_prepare_hint": "Press the space bar when you are ready.",
         "meditation_start_stimuli": "Sounds and vibration will now arrive. Remain in the meditative state.",
         "consigne_E_M": "In this part, we invite you to meditate on the Nature of Mind while sounds and vibration arrive.\n\nYou should do nothing in response to the sounds and vibration—simply continue meditating on the Nature of Mind.\n\nKeep your eyes open and fixed on the white cross on the screen.",
@@ -570,13 +572,12 @@ NOISE_RIGHT = sound.Sound(NOISE_RIGHT_PATH)
 NOISE_LEFT = sound.Sound(NOISE_LEFT_PATH)
 GONG = sound.Sound(os.path.join(AUDIO_DIR, "tibetan-bowl.wav"))
 MEDITATION_AUDIO = sound.Sound(os.path.join(AUDIO_DIR, "conscience-ouverte.wav"))
-MEDITATION_AUDIO.volume = 0.8
+MEDITATION_AUDIO.volume = 1
 
 def play_sound_obj(sound_obj):
     # Stop first to avoid overlap from previous trial
     sound_obj.stop()
     sound_obj.play()
-
 def stop_all_sounds():
     for s in [NOISE_RIGHT, NOISE_LEFT]:
         try:
@@ -1587,8 +1588,9 @@ def run_condition_task(cond):
     # Condition-specific preparation
     if condition_task == "M":
         # M condition: prepare meditation → long fixation (8 min) → ready to start
+        msg_key = "meditation_prepare" if group == "E" else "meditation_prepare_control"
         show_instruction_space(
-            TEXTS[language]["meditation_prepare"],
+            TEXTS[language][msg_key],
             TEXTS[language]["meditation_prepare_hint"],
             start_key="MEDITATION_1_START", end_key="MEDITATION_1_END",
         )
