@@ -71,11 +71,11 @@ DURATION_FEEDBACK = 3.0
 FEEDBACK_GOOD_MAX_ERROR = 3.0
 
 # Resting state and meditation
-DURATION_BASELINE_STATE = 300.0  # 5 minutes initial baseline at start of experiment
+DURATION_BASELINE_STATE = 3.0  # 5 minutes initial baseline at start of experiment
 DURATION_RESTING_STATE_MSG = 6.0  # intro message before the fixation cross, auto-timed
-DURATION_INDUCTION_MEDITATION = 480.0  # 8 minutes fixation cross for M condition
-DURATION_INDUCTION_VIGILANCE = 480.0  # 8 minutes fixation cross for V condition
-DURATION_BASELINE_CONDITION = 120.0  # 2 minutes fixation cross per condition
+DURATION_INDUCTION_MEDITATION = 4.0  # 8 minutes fixation cross for M condition
+DURATION_INDUCTION_VIGILANCE = 4.0  # 8 minutes fixation cross for V condition
+DURATION_BASELINE_CONDITION = 1.0  # 2 minutes fixation cross per condition
 DURATION_TASK_START_MSG = 3.0
 DURATION_VIGILANCE_1 = 3.0    # short instruction shown at the start of EACH V block
 DURATION_END = 3.0            # final "thank you" screen, auto-timed
@@ -1059,22 +1059,55 @@ def ask_phenomenology_questions_after_induction():
 
     for moment in time_moments:
         responses[moment] = {}
+
+    # Q1: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q1"] = ask_scale_vertical_pheno(q1_txt, q1_options, q1_labels, 1, time_half=moment)
+
+    # Q2: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q2"] = ask_scale_vertical_pheno(q2_txt, q2_options, q2_labels, 1, time_half=moment)
+
+    # Q3: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q3"] = ask_scale_vertical_pheno(q3_txt, q3_options, q3_labels, 1, time_half=moment)
+
+    # Q4: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q4"] = ask_scale_vertical_pheno(q4_txt, q4_options, q4_labels, 1, time_half=moment)
+
+    # Q5: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q5"] = ask_scale_vertical_pheno(q5_txt, q5_options, q5_labels, 1, time_half=moment)
+
+    # Q6: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q6"] = ask_scale_vertical_pheno(q6_txt, q6_options, q6_labels, 1, time_half=moment)
+
+    # Q7: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q7"] = ask_scale_vertical_pheno(q7_txt, q7_options, q7_labels, 1, time_half=moment)
+
+    # Q8: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q8"] = ask_scale_vertical_pheno(q8_txt, q8_options, q8_labels, 1, time_half=moment)
+
+    # Q9: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q9"] = ask_scale_vertical_pheno(q9_txt, q9_options, q9_labels, 1, time_half=moment)
+
+    # Q10: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q10"] = ask_scale_vertical_pheno(q10_txt, q10_options, q10_labels, 1, time_half=moment)
 
-        # Q11: Confidence only if NOM != 0, X
+    # Q11: Confidence only if NOM != 0, X - Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q11"] = ""
         if responses[moment]["q10"] not in ["0", "X"]:
             responses[moment]["q11"] = ask_scale_vertical_pheno(q11_txt, q11_options, q11_labels, 1, time_half=moment)
 
+    # Q12: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
         responses[moment]["q12"] = ask_scale_vertical_pheno(q12_txt, q12_options, q12_labels, 1, time_half=moment)
 
     return responses, question_texts
@@ -1173,49 +1206,60 @@ def ask_nom_recognition_bloc(question_text, time_half=None):
 def ask_phenomenology_questions_after_block(block_idx):
     responses = {"T1": {}, "T2": {}}
 
+    # Q1: Ask T1 then T2 in sequence
     q1_txt = "In this block, and based on your own personal best, how successfully did you follow the instruction?"
     responses["T1"]["success_rating"] = ask_success_rating_bloc(q1_txt, "T1")
     responses["T2"]["success_rating"] = ask_success_rating_bloc(q1_txt, "T2")
 
+    # Q2: Ask T1 then T2 in sequence
     q2_txt = "Did you experience any moments you would describe as recognizing the nature of mind?"
     responses["T1"]["nom_recognition"] = ask_nom_recognition_bloc(q2_txt, "T1")
     responses["T2"]["nom_recognition"] = ask_nom_recognition_bloc(q2_txt, "T2")
 
+    # Q3: Ask T1 then T2 in sequence
     q3_txt = "How confident are you about your rating?"
     q3_options = ["X", "1", "2", "3"]
     q3_labels = ["I do not recall", "not confident", "a little confident", "confident"]
 
     responses["T1"]["nom_confidence"] = ""
-    responses["T2"]["nom_confidence"] = ""
-    for time_half in ("T1", "T2"):
-        if responses[time_half]["nom_recognition"] not in ["0", "X"]:
-            responses[time_half]["nom_confidence"] = ask_scale_vertical_bloc(
-                q3_txt, q3_options, q3_labels, 1, time_half=time_half)
+    if responses["T1"]["nom_recognition"] not in ["0", "X"]:
+        responses["T1"]["nom_confidence"] = ask_scale_vertical_bloc(
+            q3_txt, q3_options, q3_labels, 1, time_half="T1")
 
+    responses["T2"]["nom_confidence"] = ""
+    if responses["T2"]["nom_recognition"] not in ["0", "X"]:
+        responses["T2"]["nom_confidence"] = ask_scale_vertical_bloc(
+            q3_txt, q3_options, q3_labels, 1, time_half="T2")
+
+    # Q4: Ask T1 then T2 in sequence
     q4_txt = "Was there a difference between near sounds and distant sounds?"
     q4_options = ["0", "1"]
     q4_labels = ["No", "Yes"]
     responses["T1"]["near_far_difference"] = ask_scale_vertical_bloc(q4_txt, q4_options, q4_labels, 0, time_half="T1")
     responses["T2"]["near_far_difference"] = ask_scale_vertical_bloc(q4_txt, q4_options, q4_labels, 0, time_half="T2")
 
+    # Q5: Ask T1 then T2 in sequence
     q5_txt = "To what extent did you experience a boundary between you and the sounds?"
     q5_options = ["0", "1", "2"]
     q5_labels = ["No boundary", "A distance between the perceiving subject and the perceived sound", "A separation between a subject and exterior sounds"]
     responses["T1"]["boundary_experience"] = ask_scale_vertical_bloc(q5_txt, q5_options, q5_labels, 0, time_half="T1")
     responses["T2"]["boundary_experience"] = ask_scale_vertical_bloc(q5_txt, q5_options, q5_labels, 0, time_half="T2")
 
+    # Q6: Ask T1 then T2 in sequence
     q6_txt = "Was there a center of consciousness?"
     q6_options = ["0", "1", "2"]
     q6_labels = ["No center", "A subject observing mental phenomena (sounds and vibration)", "A sense of being an agent perceiving exterior stimulations (sounds and vibration)"]
     responses["T1"]["center_of_consciousness"] = ask_scale_vertical_bloc(q6_txt, q6_options, q6_labels, 0, time_half="T1", spacing=90)
     responses["T2"]["center_of_consciousness"] = ask_scale_vertical_bloc(q6_txt, q6_options, q6_labels, 0, time_half="T2", spacing=90)
 
+    # Q7: Ask T1 then T2 in sequence
     q7_txt = "To what extent did you experience sounds as occurring within the mind, or as feeling like they were outside it?"
     q7_options = ["X", "1", "2", "3"]
     q7_labels = ["I do not recall anything like this", "The sounds seemed to occur within my mind", "The sounds seemed to occur outside of my mind", "The sounds seemed to occur both within my mind and outside of it"]
     responses["T1"]["sounds_location"] = ask_scale_vertical_bloc(q7_txt, q7_options, q7_labels, 1, time_half="T1")
     responses["T2"]["sounds_location"] = ask_scale_vertical_bloc(q7_txt, q7_options, q7_labels, 1, time_half="T2")
 
+    # Q8: Ask T1 then T2 in sequence
     q8_txt = "To what extent did experiences of sounds involve a separation between the sound being heard and an observer (a 'hearer'), as opposed to no separation?"
     q8_options = ["X", "1", "2", "3"]
     q8_labels = ["I do not recall anything about this", "There was no sense of a sound being heard by an observer who was separate from the sound",
