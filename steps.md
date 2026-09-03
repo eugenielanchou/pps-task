@@ -7,7 +7,7 @@
 - ✓ Amplificateur EEG **g.HIamp** : branché en USB et en alimentation électrique
 - ✓ Électrodes EEG : bien positionnées et vérifiées
 - ✓ Câble audio stéréo : connecté aux enceintes (droite = near/proche, gauche = far/loin)
-- ✓ Port COM du MMBT-S (stimulateur tactile) : configuration vérifiée dans `config_local.py`
+- ✓ Arduino (stimulateur tactile) : branché et port COM configuré dans `config_local.py`
 - ✓ Ordinateur allumé et connecté au réseau (pour LSL sur localhost)
 
 ---

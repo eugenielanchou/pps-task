@@ -1,4 +1,3 @@
-# uv pip install numpy sounddevice psychopy psychopy-sounddevice pylsl pyserial
 import os
 import csv
 import random
@@ -6,92 +5,89 @@ from datetime import datetime
 import wave
 import numpy as np
 import serial
+import sys
 from pylsl import StreamInfo, StreamOutlet, local_clock
 from psychopy import prefs
 
 # ============================================================
 # MACHINE-SPECIFIC SETTINGS
-# Audio device name and COM port differ from one computer to another.
-# See config_local.example.py for setup instructions.
 try:
-    from config_local import AUDIO_DEVICE_NAME, MMBT_PORT
+    from config_local import AUDIO_DEVICE_NAME
 except ImportError:
     raise RuntimeError(
         "Missing config_local.py. Copy config_local.example.py to "
-        "config_local.py and fill in AUDIO_DEVICE_NAME / MMBT_PORT for this machine."
+        "config_local.py and fill in AUDIO_DEVICE_NAME for this machine."
     )
 
 # ============================================================
 # PSYCHOPY AUDIO BACKEND
-prefs.hardware["audioLib"] = ["sounddevice"]
+# sounddevice must be FIRST in the list to avoid ptb trying first and failing
+prefs.hardware["audioLib"] = ["sounddevice", "pyo", "pygame"]
 prefs.hardware["audioDevice"] = [AUDIO_DEVICE_NAME]
 
-from psychopy import core, visual, sound
+from psychopy import core, visual, sound, event
 from psychopy.hardware import keyboard
 
 # ============================================================
 # GLOBAL FLAGS
 LSL_AVAILABLE = True
 SERIAL_AVAILABLE = True
-MMBT_ENABLED = True
+ARDUINO_ENABLED = True
 
 # GENERAL PATHS
 DATA_DIR = "data"
 AUDIO_DIR = "audio_cache"
 
 # ============================================================
+# ARDUINO VIBRATOR SETTINGS
+ARDUINO_PORT = "COM5"
+ARDUINO_BAUDRATE = 115200
+TTL_BYTE = 1
+DURATION_TACTILE = 5  # ms - sent to Arduino
+INTENSITY = 150
+
+# ============================================================
 # EXPERIMENT DESIGN
-# PPS conditions:
-# T   = tactile only
-# AN  = auditory near only
-# AF  = auditory far only
-# ANT = audio + tactile near
-# AFT = audio + tactile far
-# P3A = oddball tone
-#
-# SPEAKER SETUP (must match the audio panning below to get a real near/far effect):
-#   "near" (AN / ANT) is played on the RIGHT audio channel -> place the RIGHT speaker IN FRONT OF / close to the participant.
-#   "far"  (AF / AFT) is played on the LEFT audio channel  -> place the LEFT speaker BEHIND / far from the participant.
 NUM_BLOCKS_PPS = 6
 TRIALS_PER_CONDITION_PER_BLOCK = 11
 PPS_CONDITIONS = ["T", "AN", "AF", "ANT", "AFT"]
-EXTRA_CONDITION = "P3A"
 
 # ============================================================
-# TIMING PARAMETERS
-DURATION_AUDIO = 0.100
+# TIMING PARAMETERS (all in seconds unless otherwise noted)
+
+# Audio stimulus
+DURATION_AUDIO = 0.1
 ISI_VALUES_PPS = [2.5, 2.6, 2.7, 2.8, 2.9, 3.0]
 
-DURATION_FRUIT = 2.0
-ISI_FRUIT = 0.2
+# Vigilance task (strawberry counting)
+DURATION_FRUIT = 1.5
+ISI_VALUES_FRUIT = [0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
 
+# Block timing and fixation
+FIXATION_BEFORE_FIRST_BLOCK = 30.0
+FIXATION_BEFORE_LATER_BLOCK = 10.0
 DURATION_END_BLOCK = 1.0
 DURATION_AFTER_BREAK = 30.0
-DURATION_FEEDBACK = 4.0
-DURATION_BASELINE = 5.0
-DURATION_BASELINE_BLOCK = 3.0
-DURATION_RESTING_STATE = 1
+DURATION_FEEDBACK = 3.0
+
+# Resting state and meditation
+DURATION_RESTING_STATE = 50.0
 DURATION_TASK_START_MSG = 3.0
-DURATION_MEDITATION_PREP = 8  # 8 seconds for testing (set to 480 for 8 minutes in production)
+DURATION_MEDITATION = 60.0  # 60 seconds for testing; set to 480 for 8 minutes in production
+
+# RT block baseline
+DURATION_BASELINE_BEFORE_RT = 30
 
 # ============================================================
 # DISPLAY PARAMETERS
-TEXT_HEIGHT = 32
-TEXT_WRAP = 900
+TEXT_HEIGHT = 56
+TEXT_WRAP = 1400
 
 # ============================================================
 # AUDIO PARAMETERS
 SAMPLE_RATE = 44100
 P3A_FREQ = 1000
 TARGET_RMS = 0.08
-
-# ============================================================
-# MMBT-S / DIGITIMER SETTINGS
-# MMBT_PORT comes from config_local.py (see MACHINE-SPECIFIC SETTINGS above).
-MMBT_BAUDRATE = 9600
-MMBT_PULSE_WIDTH = 0.005
-DIGITIMER_TTL_CODE = 128 
-MMBT_MODE = "pulse"   # "pulse" or "simple"
 
 # ============================================================
 # TRIGGER CODES FOR LSL
@@ -101,13 +97,11 @@ TRIGGER_CODES = {
     "AF": 3,
     "ANT": 4,
     "AFT": 5,
-    "P3A": 6,
     "T_OFF": 11,
     "AN_OFF": 12,
     "AF_OFF": 13,
     "ANT_OFF": 14,
     "AFT_OFF": 15,
-    "P3A_OFF": 16,
     "BLOCK_START": 99,
     "BLOCK_END": 98,
     "EXP_START": 97,
@@ -144,9 +138,11 @@ TRIGGER_CODES = {
     "STRAWBERRY_QUESTION_START": 128,
     "STRAWBERRY_QUESTION_END": 129,
     "STRAWBERRY_DISPLAY": 130,
+    "OTHER_FRUIT_DISPLAY": 134,
     "RT_BLOCK_START": 131,
     "RT_BLOCK_END": 132,
     "RT_RESPONSE": 133,
+    "MEDITATION_CLICK": 140,
 }
 
 # ============================================================
@@ -166,7 +162,7 @@ TEXTS = {
         "rt_block_position_hint": "Appuyez sur B (before) ou A (after), puis sur la barre d'espace.",
 
         # ===== CALIBRATION & FAMILIARIZATION =====
-        "calibration_intro": "Pendant cette expérience, vous allez entendre des sons provenant des deux haut-parleurs situés devant vous.\n\n\nNous allons commencer par une phase de calibration auditive.",
+        "calibration_intro": "Pendant cette expérience, vous allez entendre des sons provenant des deux haut-parleurs situés devant vous. et vous allez ressentir une légère vibration au niveau du torse.\n\nNous allons  vous familiariser avec la distance des deux sons et la vibration.",
         "calibration_instruction": "Calibration :\n\n\nLe son va être présenté plusieurs fois.\n\nVous devrez indiquer si vous avez entendu un son ou non.",
         "calibration_instruction_hint": "Appuyez sur la barre d'espace quand vous êtes prêt.",
         "calibration_trial": "Avez-vous entendu un son ?",
@@ -181,7 +177,7 @@ TEXTS = {
         "famil_far_sound": "Vous allez entendre le son LOIN.",
         "famil_far_sound_hint": "Appuyez sur la barre d'espace pour l'écouter.",
         "famil_tactile": "Vous allez sentir la vibration tactile.",
-        "famil_tactile_hint": "Appuyez sur la barre d'espace pour le sentir.",
+        "famil_tactile_hint": "An nppuyez sur la barre d'espace pour le sentir.",
         "famil_repeat_question": "Voulez-vous écouter à nouveau la différence ?",
         "famil_repeat_question_tactile": "Voulez-vous réessayer ?",
         "famil_repeat_yes_no": "Oui ou Non : appuyez sur O ou N, puis barre d'espace.",
@@ -189,16 +185,32 @@ TEXTS = {
         "consigne_stimuli": "Durant l'expérience ce sont exactement ces sons et cette vibration que vous allez percevoir.",
         "consigne_stimuli_hint": "Appuyez sur la barre espace pour commencer.",
 
+        # ===== TASK DESCRIPTIONS (for dynamic task order) =====
+        "task_intro_start": "Pendant cette expérience, vous allez entendre ces exacts mêmes sons et cette vibration.\n\nVous allez avoir trois différentes tâches :",
+        "task_rt_desc": "Vous devrez réagir aussi rapidement que possible en appuyant sur la barre d'espace dès que vous ressentez la vibration.",
+        "task_m_desc": "Vous devrez entrer dans un état de méditation et fixer la croix à l'écran.",
+        "task_v_desc": "Vous devrez compter mentalement le nombre de fraises qui défilent à l'écran.",
+
+        # ===== TASK 1 INTRO (first task in experiment) =====
+        "task_1_rt_first": "Tâche 1 : Vous allez devoir réagir aussi rapidement que possible en appuyant sur la barre d'espace dès que vous ressentez la vibration.\n\nVous allez avoir un court entraînement.",
+        "task_1_v_first": "Tâche 1 : Vous devrez compter mentalement le nombre de fraises qui défilent à l'écran.\n\nVous allez avoir un court entraînement.",
+        "task_1_hint": "Appuyez sur la barre d'espace pour continuer.",
+
+        # ===== RESTING STATE INTRO (different for RT/V vs M) =====
+        "resting_state_intro_before_task": "Avant de commencer, vous allez d'abord avoir une croix de fixation devant vous pendant 2 minutes.\n\nPuis la tâche commencera.\n\nVous êtes prêt ?",
+        "resting_state_intro_before_m": "Avant de commencer, vous allez d'abord avoir une croix de fixation devant vous pendant 2 minutes.\n\nVous allez simplement fixer la croix.",
+        "meditation_intro_before_task": "Ensuite, vous allez avoir un moment pour entrer dans votre état de méditation.\n\nPuis, les stimulations des sons et la vibration commenceront.",
+
         # ===== REACTION TIME BLOCK =====
-        "rt_block_intro_first": "Nous allons commencer par un petit excercice : dès que vous sentez la vibration, appuyez sur la barre d'espace AUSSI RAPIDEMENT que possible.\n\n",
-        "rt_block_intro_end": "Nous allons terminer par un petit excercice : vous allez entendre les mêmes sons et sentir la même vibration.\n\nMais, cette fois, vous devez appuyer sur la barre d'espace AUSSI RAPIDEMENT que possible quand vous ressentez la vibration.",
-        "rt_block_intro_hint": "Appuyez sur la barre d'espace pour commencer l'entrainement.",
+        "rt_block_intro_first": "Nous allons commencer par le premier bloc d'exercice (Bloc 1/2) : dès que vous sentez la vibration, appuyez sur la barre d'espace AUSSI RAPIDEMENT que possible.\n\n",
+        "rt_block_intro_end": "Nous allons maintenant faire le second bloc d'exercice (Bloc 2/2) : vous allez entendre les mêmes sons et sentir la même vibration.\n\nMais, cette fois, vous devez appuyer sur la barre d'espace AUSSI RAPIDEMENT que possible quand vous ressentez la vibration.",
+        "rt_block_intro_hint": "Appuyez sur la barre d'espace pour commencer l'entraînement.",
         "rt_practice_heading": "Phase d'entraînement",
         "rt_practice_done": "Bien! Vous avez maintenant une idée de ce qui va se passer.",
         "rt_practice_repeat_question": "Refaire l'entraînement ?",
-        "rt_ready": "La tache va bientot commencer.",
-        "rt_block_end": "Merci pour cette excercice.",
-        "rt_block_end_first": "Pour la suite de l'expérience, vous n'aurez pas besoin d'utiliser la souris, vous allez seulement devoir entendre les sons et ressentir la vibration, sans rien faire.",
+        "rt_ready": "Le bloc va bientôt commencer.",
+        "rt_block_end": "Merci pour ce bloc d'exercice.",
+        "rt_block_end_first": "Nous allons maintenant continuer avec la tâche principale.\n\nPour la suite de l'expérience, vous n'aurez pas besoin d'utiliser la souris, vous allez seulement devoir entendre les sons et ressentir la vibration, sans rien faire.",
         "rt_block_end_first_hint": "Appuyez sur la barre d'espace quand vous avez compris.",
 
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
@@ -265,7 +277,7 @@ TEXTS = {
         "rt_block_position_hint": "Press B (before) or A (after), then press the space bar to continue.",
 
         # ===== CALIBRATION & FAMILIARIZATION =====
-        "calibration_intro": "During this experiment, you will hear sounds from the two loudspeakers in front of you.\n\nWe will start with an auditory calibration phase.",
+        "calibration_intro": "During this experiment, you will hear sounds from the two loudspeakers in front of you. and you will feel a slight vibration on your chest.\n\nWe will familiarize you with the distance of the two sounds and the vibration.",
         "calibration_instruction": "Calibration:\n\n\nThe sound will be presented several times.\n\nYou will need to indicate whether you heard a sound or not.",
         "calibration_instruction_hint": "Press the space bar when you are ready.",
         "calibration_trial": "Did you hear a sound?",
@@ -288,6 +300,22 @@ TEXTS = {
         "consigne_stimuli": "During the experiment, you will perceive exactly these sounds and this vibration.\n\nYou will only be asked to perceive them, without doing anything else.\n\nOnly your mental state will change: meditation or not.",
         "consigne_stimuli_hint": "If you understood, press the space bar.",
 
+        # ===== TASK DESCRIPTIONS (for dynamic task order) =====
+        "task_intro_start": "During this experiment, you will hear these exact same sounds and this vibration.\n\nYou will have three different tasks:",
+        "task_rt_desc": "You must react as quickly as possible by pressing the space bar as soon as you feel the vibration.",
+        "task_m_desc": "You must enter a meditative state and fix your eyes on the cross on the screen.",
+        "task_v_desc": "You must mentally count the number of strawberries that appear on the screen.",
+
+        # ===== TASK 1 INTRO (first task in experiment) =====
+        "task_1_rt_first": "Task 1: You must react as quickly as possible by pressing the space bar as soon as you feel the vibration.\n\nYou will have a short training.",
+        "task_1_v_first": "Task 1: You must mentally count the number of strawberries that appear on the screen.\n\nYou will have a short training.",
+        "task_1_hint": "Press the space bar to continue.",
+
+        # ===== RESTING STATE INTRO (different for RT/V vs M) =====
+        "resting_state_intro_before_task": "Before you begin, you will first see a fixation cross on the screen for 2 minutes.\n\nThen the task will begin.\n\nAre you ready?",
+        "resting_state_intro_before_m": "Before you begin, you will first see a fixation cross on the screen for 2 minutes.\n\nYou will simply fix your eyes on the cross.",
+        "meditation_intro_before_task": "Then, you will have a moment to enter your meditative state.\n\nAfter that, the sounds and vibration will begin.",
+
         # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
         "task_will_start": "The task will now begin.",
         "consigne_M_E_first": "The experiment will unfold in two parts:\n\nDuring this first part, you will need to enter a non-dual meditative state.\n\nWe will give you several minutes to do this.",
@@ -301,16 +329,16 @@ TEXTS = {
         "consigne_hint": "When you are ready, press the space bar to begin.",
 
         # ===== REACTION TIME BLOCK =====
-        "rt_block_intro_first": "We will start with a small exercise: as soon as you feel the vibration, press the space bar AS QUICKLY AS POSSIBLE.\n\n",
-        "rt_block_intro_end": "We will now finish with a small exercise: you will hear the same sounds and feel the same vibration.\n\nBut this time, you must press the space bar AS QUICKLY AS POSSIBLE when you feel the vibration.",
+        "rt_block_intro_first": "We will start with the first training block (Block 1/2): as soon as you feel the vibration, press the space bar AS QUICKLY AS POSSIBLE.\n\n",
+        "rt_block_intro_end": "We will now do the second training block (Block 2/2): you will hear the same sounds and feel the same vibration.\n\nBut this time, you must press the space bar AS QUICKLY AS POSSIBLE when you feel the vibration.",
         "rt_block_intro_hint": "Press the space bar to begin the training.",
         "rt_practice_heading": "Training phase",
         "rt_practice_hint": "Press the space bar to begin.",
         "rt_practice_done": "Good! You now have an idea of what will happen.",
         "rt_practice_repeat_question": "Would you like to redo the training?",
-        "rt_ready": "The task will begin soon.",
-        "rt_block_end": "Thank you for this exercise.",
-        "rt_block_end_first": "For the rest of the experiment, you will not need to use the mouse. You will only need to hear the sounds and feel the vibration, without doing anything else.",
+        "rt_ready": "The block will begin soon.",
+        "rt_block_end": "Thank you for this training block.",
+        "rt_block_end_first": "We will now move to the main task.\n\nFor the rest of the experiment, you will not need to use the mouse. You will only need to hear the sounds and feel the vibration, without doing anything else.",
         "rt_block_end_first_hint": "Press the space bar when you understand.",
 
         # ===== PRACTICE PHASES =====
@@ -355,7 +383,7 @@ TEXTS = {
 BLOCK_FIELDNAMES = [
     "group", "participant_num", "language", "datetime", "condition_task", "block",
     "response_strawberries", "real_strawberries", "error", "total_fruits",
-    "trial_sequence", "n_T", "n_AN", "n_AF", "n_ANT", "n_AFT", "n_P3A",
+    "trial_sequence", "n_T", "n_AN", "n_AF", "n_ANT", "n_AFT",
     "block_duration_sec",
 ]
 
@@ -363,24 +391,24 @@ TRIAL_FIELDNAMES = [
     "group", "participant_num", "language", "datetime", "condition_task",
     "block", "trial_index", "condition_trial",
     "audio_side", "audio_present", "tactile_present",
-    "isi_sec", "stim_onset_clock", "trigger_code",
+    "isi_sec", "stim_onset_clock", "stim_offset_clock", "trigger_code", "trigger_code_offset",
     "lsl_sent", "ttl_sent", "lsl_time", "ttl_on_time", "ttl_off_time",
-    "audio_play_call_time",
+    "audio_play_call_time", "meditation_click_count", "meditation_click_times",
 ]
 
 RT_TRIAL_FIELDNAMES = [
-    "group", "participant_num", "language", "datetime",
+    "group", "participant_num", "language", "datetime", "condition_task",
     "trial_index", "condition_trial",
     "audio_side", "audio_present", "tactile_present",
-    "isi_sec", "stim_onset_clock", "trigger_code",
+    "isi_sec", "stim_onset_clock", "stim_offset_clock", "trigger_code", "trigger_code_offset",
     "lsl_sent", "ttl_sent", "lsl_time", "ttl_on_time", "ttl_off_time",
-    "audio_play_call_time", "response_time", "response_lsl_time",
+    "audio_play_call_time", "reaction_time_sec", "response_absolute_clock", "response_lsl_time",
 ]
 
 # ============================================================
 # GLOBAL STATE VARIABLES
 marker_outlet = None
-mmbt = None
+arduino = None
 block_log_rows = []
 trial_log_rows = []
 rt_log_rows = []
@@ -443,18 +471,17 @@ def setup_lsl():
         marker_outlet = None
 
 # ============================================================
-# MMBT-S SERIAL SETUP
-# TTL values are sent as raw bytes with ser.write(bytes([code])).
-def setup_mmbt():
-    global mmbt
-
-    if not MMBT_ENABLED or not SERIAL_AVAILABLE:
+# Arduino setup
+def setup_arduino():
+    global arduino
+    if not ARDUINO_ENABLED or not SERIAL_AVAILABLE:
+        print("Arduino vibrator disabled.")
         return
 
     try:
-        mmbt = serial.Serial(
-            port=MMBT_PORT,
-            baudrate=MMBT_BAUDRATE,
+        arduino = serial.Serial(
+            port=ARDUINO_PORT,
+            baudrate=ARDUINO_BAUDRATE,
             bytesize=serial.EIGHTBITS,
             parity=serial.PARITY_NONE,
             stopbits=serial.STOPBITS_ONE,
@@ -464,28 +491,36 @@ def setup_mmbt():
             rtscts=False,
             dsrdtr=False
         )
-
         try:
-            mmbt.setDTR(True)
+            arduino.setDTR(True)
         except Exception:
             pass
-
         core.wait(0.2)
-
-        # Reset output state at startup
-        mmbt.write(bytes([0]))
-        mmbt.flush()
+        arduino.write(bytes([0]))
+        arduino.flush()
         core.wait(0.05)
-
-        print(f"MMBT-S connected on {MMBT_PORT} ({MMBT_BAUDRATE} baud)")
-        print(f"Digitimer TTL code = {DIGITIMER_TTL_CODE}")
-
+        print(f"Arduino connected on {ARDUINO_PORT} ({ARDUINO_BAUDRATE} baud)")
     except Exception as e:
-        print(f"WARNING: Could not open MMBT-S on {MMBT_PORT}: {e}")
-        mmbt = None
+        print(f"WARNING: Could not open Arduino on {ARDUINO_PORT}: {e}")
+        arduino = None
+        sys.exit(1)
 
-# ============================================================
+def send_arduino_ttl():
+    ttl_on_time = None
+    ttl_off_time = None
+    if arduino is not None:
+        try:
+            ttl_on_time = core.getTime()
+            arduino.write(f"{DURATION_TACTILE},{INTENSITY}\n".encode("utf-8"))
+            arduino.flush()
+            ttl_off_time = core.getTime()
+        except Exception as e:
+            print(f"WARNING: failed to send Arduino TTL: {e}")
+    return ttl_on_time, ttl_off_time
+
 def send_lsl_marker(code):
+    global marker_outlet
+ 
     lsl_time = None
     if marker_outlet is not None:
         try:
@@ -495,38 +530,17 @@ def send_lsl_marker(code):
             print(f"WARNING: failed to send LSL marker {code}: {e}")
     return lsl_time
 
-def send_mmbt_ttl(code=DIGITIMER_TTL_CODE, pulse_width=MMBT_PULSE_WIDTH):
-    ttl_on_time = None
-    ttl_off_time = None
+def send_event(code_key, send_lsl=True, send_ttl=False, ttl_code=TTL_BYTE):
 
-    if mmbt is not None:
-        try:
-            ttl_on_time = core.getTime()
-            mmbt.write(bytes([int(code)]))
-            mmbt.flush()
+    global marker_outlet
 
-            if MMBT_MODE.lower() == "simple":
-                core.wait(pulse_width)
-                ttl_off_time = core.getTime()
-                mmbt.write(bytes([0]))
-                mmbt.flush()
-            else:
-                # In pulse mode, the hardware resets automatically.
-                ttl_off_time = ttl_on_time + 0.008
-
-        except Exception as e:
-            print(f"WARNING: failed to send TTL pulse {code}: {e}")
-
-    return ttl_on_time, ttl_off_time
-
-def send_event(code_key, send_lsl=True, send_ttl=False, ttl_code=DIGITIMER_TTL_CODE):
     if isinstance(code_key, str):
         code = TRIGGER_CODES.get(code_key, 0)
     else:
         code = int(code_key)
 
     if code == 0:
-        print(f"WARNING: Unknown trigger key '{code_key}', code set to 0")
+        print(f"WARNING: Unknown trigger key '{code_key}', code set to 0")    
 
     local_time = core.getTime()
     lsl_time = None
@@ -535,9 +549,10 @@ def send_event(code_key, send_lsl=True, send_ttl=False, ttl_code=DIGITIMER_TTL_C
 
     if send_lsl:
         lsl_time = send_lsl_marker(code)
+        print(f"sending trigger '{code_key}' = {code} : ")
 
     if send_ttl:
-        ttl_on_time, ttl_off_time = send_mmbt_ttl(ttl_code)
+        ttl_on_time, ttl_off_time = send_arduino_ttl()
 
     return {
         "event_code": code,
@@ -545,7 +560,7 @@ def send_event(code_key, send_lsl=True, send_ttl=False, ttl_code=DIGITIMER_TTL_C
         "lsl_time": lsl_time,
         "ttl_on_time": ttl_on_time,
         "ttl_off_time": ttl_off_time,
-        "ttl_sent": int(send_ttl and mmbt is not None),
+        "ttl_sent": int(send_ttl and arduino is not None),
         "lsl_sent": int(send_lsl and marker_outlet is not None),
     }
 
@@ -607,20 +622,17 @@ def make_audio_files():
 
     noise_right_path = os.path.join(AUDIO_DIR, "noise_right.wav")
     noise_left_path = os.path.join(AUDIO_DIR, "noise_left.wav")
-    tone_p3a_path = os.path.join(AUDIO_DIR, "tone_p3a.wav")
     calibration_path = os.path.join(AUDIO_DIR, "calibration_noise.wav")
 
     write_wav_file(noise_right_path, generate_white_noise_array(pan="right"))
     write_wav_file(noise_left_path, generate_white_noise_array(pan="left"))
-    write_wav_file(tone_p3a_path, generate_tone_array())
     write_wav_file(calibration_path, generate_white_noise_array(duration=5.0, pan="both"))
 
-    return noise_right_path, noise_left_path, tone_p3a_path, calibration_path
+    return noise_right_path, noise_left_path, calibration_path
 
-NOISE_RIGHT_PATH, NOISE_LEFT_PATH, TONE_P3A_PATH, CALIBRATION_NOISE_PATH = make_audio_files()
+NOISE_RIGHT_PATH, NOISE_LEFT_PATH, CALIBRATION_NOISE_PATH = make_audio_files()
 NOISE_RIGHT = sound.Sound(NOISE_RIGHT_PATH)
 NOISE_LEFT = sound.Sound(NOISE_LEFT_PATH)
-TONE_P3A = sound.Sound(TONE_P3A_PATH)
 CALIBRATION_NOISE = sound.Sound(CALIBRATION_NOISE_PATH)
 
 def play_sound_obj(sound_obj):
@@ -629,7 +641,7 @@ def play_sound_obj(sound_obj):
     sound_obj.play()
 
 def stop_all_sounds():
-    for s in [NOISE_RIGHT, NOISE_LEFT, TONE_P3A]:
+    for s in [NOISE_RIGHT, NOISE_LEFT]:
         try:
             s.stop()
         except Exception:
@@ -637,19 +649,20 @@ def stop_all_sounds():
 
 # ============================================================
 # WINDOW AND INPUT
-win = visual.Window(fullscr=True, color="black", units="pix")
+win = visual.Window(fullscr=True, color="black", units="pix", screen=1)
 kb = keyboard.Keyboard()
+mouse = event.Mouse(win=win, visible=False)
 
 # ============================================================
-# INITIALIZATION of LSL + MMBT
+# INITIALIZATION of LSL and Arduino
 # Done before any screen is shown, so every instruction/consigne the
 # participant sees (including language/group/condition selection) can be
 # marked in the EEG/ECG signal.
 setup_lsl()
-setup_mmbt()
+setup_arduino()
 
-fixation_h = visual.Line(win, start=(-15, 0), end=(15, 0), lineWidth=3, lineColor="white")
-fixation_v = visual.Line(win, start=(0, -15), end=(0, 15), lineWidth=3, lineColor="white")
+fixation_h = visual.Line(win, start=(-50, 0), end=(50, 0), lineWidth=8, lineColor="white")
+fixation_v = visual.Line(win, start=(0, -50), end=(0, 50), lineWidth=8, lineColor="white")
 
 def clear_keyboard():
     kb.clearEvents()
@@ -667,7 +680,7 @@ def draw_text(text, height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 0), italic=False
     return stim
 
 def draw_hint(text, pos=(0, -300)):
-    draw_text(text, height=22, wrap=TEXT_WRAP, pos=pos, italic=True)
+    draw_text(text, height=48, wrap=TEXT_WRAP, pos=pos, italic=True)
 
 # ============================================================
 # CSV SAVING
@@ -724,10 +737,10 @@ def save_logs_now():
 # SAFE EXIT
 def safe_quit():
     try:
-        if mmbt is not None:
-            mmbt.close()
+        if arduino is not None:
+            arduino.close()
     except Exception as e:
-        print(f"Error while closing MMBT-S: {e}")
+        print(f"Error while closing Arduino: {e}")
 
     try:
         stop_all_sounds()
@@ -837,7 +850,7 @@ def show_resting_state():
 
 def show_end_of_block_screen(block_idx):
     txt = TEXTS[language]["break"].format(block_idx + 1, NUM_BLOCKS_PPS)
-    show_text_timed(txt, seconds=DURATION_END_BLOCK, height=28, wrap=TEXT_WRAP,
+    show_text_timed(txt, seconds=DURATION_END_BLOCK, height=56, wrap=TEXT_WRAP,
                      start_key="BLOCK_BREAK_START", end_key="BLOCK_BREAK_END")
 
 def show_feedback(ans, real, err):
@@ -846,7 +859,7 @@ def show_feedback(ans, real, err):
         fb_txt += "\n\n" + TEXTS[language]["feedback_well_done"]
     elif err != 0:
         fb_txt += "\n\n" + TEXTS[language]["feedback_try_harder"]
-    show_text_timed(fb_txt, seconds=DURATION_FEEDBACK, height=28, wrap=TEXT_WRAP,
+    show_text_timed(fb_txt, seconds=DURATION_FEEDBACK, height=56, wrap=TEXT_WRAP,
                      start_key="FEEDBACK_START", end_key="FEEDBACK_END")
 
 def show_ipad_pheno():
@@ -864,7 +877,7 @@ def ask_yes_no_question(question_key="famil_repeat_question"):
     while True:
         check_escape()
         draw_text(TEXTS[language][question_key], height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 60))
-        draw_text(chosen if chosen else "_", height=48, wrap=TEXT_WRAP, pos=(0, -40))
+        draw_text(chosen if chosen else "_", height=80, wrap=TEXT_WRAP, pos=(0, -40))
         draw_hint(TEXTS[language]["famil_repeat_yes_no"])
         win.flip()
 
@@ -885,32 +898,34 @@ def show_stimulus_familiarization():
     )
 
     while True:
-        show_instruction_space(
-            TEXTS[language]["famil_near_sound"],
-            TEXTS[language]["famil_near_sound_hint"],
-        )
-        play_sound_obj(NOISE_RIGHT)
-        core.wait(DURATION_AUDIO + 0.2)
-        stop_all_sounds()
+        for _ in range(3):
+            show_instruction_space(
+                TEXTS[language]["famil_near_sound"],
+                TEXTS[language]["famil_near_sound_hint"],
+            )
+            play_sound_obj(NOISE_RIGHT)
+            core.wait(DURATION_AUDIO + 0.2)
+            stop_all_sounds()
 
-        show_instruction_space(
-            TEXTS[language]["famil_far_sound"],
-            TEXTS[language]["famil_far_sound_hint"],
-        )
-        play_sound_obj(NOISE_LEFT)
-        core.wait(DURATION_AUDIO + 0.2)
-        stop_all_sounds()
+            show_instruction_space(
+                TEXTS[language]["famil_far_sound"],
+                TEXTS[language]["famil_far_sound_hint"],
+            )
+            play_sound_obj(NOISE_LEFT)
+            core.wait(DURATION_AUDIO + 0.2)
+            stop_all_sounds()
 
         if not ask_yes_no_question():
             break
 
     while True:
-        show_instruction_space(
-            TEXTS[language]["famil_tactile"],
-            TEXTS[language]["famil_tactile_hint"],
-        )
-        send_mmbt_ttl()
-        core.wait(0.5)
+        for _ in range(3):
+            show_instruction_space(
+                TEXTS[language]["famil_tactile"],
+                TEXTS[language]["famil_tactile_hint"],
+            )
+            send_arduino_ttl()
+            core.wait(0.5)
 
         if not ask_yes_no_question(question_key="famil_repeat_question_tactile"):
             break
@@ -935,7 +950,7 @@ def show_calibration_psychophysical():
         is_catch_trial = random.random() < CATCH_TRIAL_PROB
 
         # Show sound indicator
-        sound_indicator = visual.TextStim(win, text="Son", pos=(0, 100), height=40, color="yellow", bold=True)
+        sound_indicator = visual.TextStim(win, text="Son", pos=(0, 100), height=72, color="yellow", bold=True)
         sound_indicator.draw()
         win.flip()
         core.wait(0.5)
@@ -1079,7 +1094,7 @@ def collect_text_input(heading, hint, max_chars=10, start_key=None, end_key=None
 # ============================================================
 # BLOCK RANDOMIZATION
 def build_block():
-    # Build one block with balanced conditions + one P3A trial
+    # Build one block with balanced conditions
     trials = []
     for cond in PPS_CONDITIONS:
         trials.extend([cond] * TRIALS_PER_CONDITION_PER_BLOCK)
@@ -1102,8 +1117,6 @@ def build_block():
     if min_consecutive > 0:
         print(f"Block has {min_consecutive} consecutive pair(s).")
 
-    p3a_pos = random.randint(14, len(best_trials))
-    best_trials.insert(p3a_pos, EXTRA_CONDITION)
     return best_trials
 
 def build_experiment():
@@ -1137,7 +1150,7 @@ class VigilanceTaskContinuous:
             safe_quit()
 
         self.image_stims = {
-            p: visual.ImageStim(self.win, image=p, size=(200, 200))
+            p: visual.ImageStim(self.win, image=p, size=(350, 350))
             for p in self.stimuli
         }
 
@@ -1156,6 +1169,8 @@ class VigilanceTaskContinuous:
         if "fraise" in os.path.basename(self.current_path).lower():
             self.strawberry_count += 1
             send_event("STRAWBERRY_DISPLAY", send_lsl=True, send_ttl=False)
+        else:
+            send_event("OTHER_FRUIT_DISPLAY", send_lsl=True, send_ttl=False)
 
         self.phase = "fruit"
         self.t_next = now + DURATION_FRUIT
@@ -1171,13 +1186,15 @@ class VigilanceTaskContinuous:
         if now >= self.t_next:
             if self.phase == "fruit":
                 self.phase = "isi"
-                self.t_next = now + ISI_FRUIT
+                self.t_next = now + random.choice(ISI_VALUES_FRUIT)
             else:
                 self.current_path = random.choice(self.stimuli)
                 self.total_fruit_count += 1
                 if "fraise" in os.path.basename(self.current_path).lower():
                     self.strawberry_count += 1
                     send_event("STRAWBERRY_DISPLAY", send_lsl=True, send_ttl=False)
+                else:
+                    send_event("OTHER_FRUIT_DISPLAY", send_lsl=True, send_ttl=False)
                 self.phase = "fruit"
                 self.t_next = now + DURATION_FRUIT
 
@@ -1191,7 +1208,9 @@ class VigilanceTaskContinuous:
 clock = core.Clock()
 clock.reset()
 
-def frame_loop_until(t_end, vigilance_task=None):
+def frame_loop_until(t_end, vigilance_task=None, track_meditation_clicks=None, stim_onset=0):
+    button_was_down = False
+
     while True:
         check_escape()
         now = clock.getTime()
@@ -1204,6 +1223,19 @@ def frame_loop_until(t_end, vigilance_task=None):
         else:
             draw_fixation_only()
 
+        # Detect meditation clicks (only during meditation condition)
+        if track_meditation_clicks is not None and condition_task == "M":
+            buttons = mouse.getPressed()
+            button_is_down = buttons[0]  # Left mouse button
+
+            # Detect rising edge (click begins)
+            if button_is_down and not button_was_down:
+                click_time = now - stim_onset
+                track_meditation_clicks.append(click_time)
+                send_event("MEDITATION_CLICK", send_lsl=True, send_ttl=False)
+
+            button_was_down = button_is_down
+
         win.flip()
 
 # ============================================================
@@ -1212,30 +1244,24 @@ def describe_trial(condition_trial):
     if condition_trial == "T":
         return False, True, ""
     if condition_trial == "AN":
-        return True, False, "right"
+        return True, False, "near"
     if condition_trial == "AF":
-        return True, False, "left"
+        return True, False, "far"
     if condition_trial == "ANT":
-        return True, True, "right"
+        return True, True, "near"
     if condition_trial == "AFT":
-        return True, True, "left"
-    if condition_trial == "P3A":
-        return True, False, "both"
+        return True, True, "far"
     raise ValueError(f"Unknown condition_trial: {condition_trial}")
 
 def build_rt_block():
-    # Build one RT block with balanced conditions (no P3A, 110 trials)
-    rt_conditions = ["T", "AN", "AF", "ANT", "AFT"]
-    trials_per_cond = 110 // len(rt_conditions)  # 22 per condition
-    remaining = 110 % len(rt_conditions)  # 0 extra trials
-
+    # Build one RT block (55 trials, biased toward audio+tactile)
+    # Two blocks: before (55) + after (55) = 110 total
     trials = []
-    for cond in rt_conditions:
-        trials.extend([cond] * trials_per_cond)
-
-    # Add remaining trial(s) to the first condition(s)
-    for i in range(remaining):
-        trials.append(rt_conditions[i])
+    trials.extend(["T"] * 5)
+    trials.extend(["AN"] * 5)
+    trials.extend(["AF"] * 5)
+    trials.extend(["ANT"] * 20)
+    trials.extend(["AFT"] * 20)
 
     best_trials = None
     min_consecutive = 999
@@ -1283,7 +1309,7 @@ def run_rt_trial(condition_trial, trial_idx):
             condition_trial,
             send_lsl=True,
             send_ttl=True,
-            ttl_code=DIGITIMER_TTL_CODE
+            ttl_code=TTL_BYTE
         )
 
     # Audio only
@@ -1296,20 +1322,30 @@ def run_rt_trial(condition_trial, trial_idx):
         elif condition_trial == "AF":
             play_sound_obj(NOISE_LEFT)
 
-    # Audio + tactile
+    # Audio + tactile - synchronized
     elif condition_trial in ["ANT", "AFT"]:
-        event_info = send_event(
-            condition_trial,
-            send_lsl=True,
-            send_ttl=True,
-            ttl_code=DIGITIMER_TTL_CODE
-        )
-        audio_play_call_time = core.getTime()
-
         if condition_trial == "ANT":
-            play_sound_obj(NOISE_RIGHT)
+            sound_to_play = NOISE_RIGHT
         elif condition_trial == "AFT":
-            play_sound_obj(NOISE_LEFT)
+            sound_to_play = NOISE_LEFT
+
+        sound_to_play.stop()
+
+        lsl_time = send_lsl_marker(TRIGGER_CODES.get(condition_trial, 0))
+        ttl_on_time, ttl_off_time = send_arduino_ttl()
+
+        audio_play_call_time = core.getTime()
+        sound_to_play.play()
+
+        event_info = {
+            "event_code": TRIGGER_CODES.get(condition_trial, 0),
+            "local_time": core.getTime(),
+            "lsl_time": lsl_time,
+            "ttl_on_time": ttl_on_time,
+            "ttl_off_time": ttl_off_time,
+            "ttl_sent": 1 if arduino is not None else 0,
+            "lsl_sent": 1 if marker_outlet is not None else 0,
+        }
 
     # Stimulus presentation window - let sound play
     stim_offset = stim_onset + DURATION_AUDIO
@@ -1341,12 +1377,15 @@ def run_rt_trial(condition_trial, trial_idx):
     trial_end = response_window_end + isi
     frame_loop_until(trial_end)
 
-    # Save RT trial row
+    stim_offset_clock = stim_onset + DURATION_AUDIO
+    trigger_code_offset = TRIGGER_CODES.get(condition_trial + "_OFF", 0)
+
     rt_log_rows.append({
         "participant_num": pp_id,
         "language": language,
         "group": group,
         "datetime": session_dt,
+        "condition_task": condition_task,
         "trial_index": trial_idx + 1,
         "condition_trial": condition_trial,
         "audio_side": audio_side,
@@ -1354,10 +1393,12 @@ def run_rt_trial(condition_trial, trial_idx):
         "tactile_present": int(tactile_present),
         "isi_sec": isi,
         "stim_onset_clock": round(stim_onset, 6),
-        "stim_lsl_time": event_info["lsl_time"],
+        "stim_offset_clock": round(stim_offset_clock, 6),
         "trigger_code": event_info["event_code"],
+        "trigger_code_offset": trigger_code_offset,
         "lsl_sent": event_info["lsl_sent"],
         "ttl_sent": event_info["ttl_sent"],
+        "lsl_time": event_info["lsl_time"],
         "ttl_on_time": event_info["ttl_on_time"],
         "ttl_off_time": event_info["ttl_off_time"],
         "audio_play_call_time": audio_play_call_time,
@@ -1369,6 +1410,7 @@ def run_rt_trial(condition_trial, trial_idx):
 def run_trial(condition_trial, block_idx, trial_idx, vigilance_task=None):
     audio_present, tactile_present, audio_side = describe_trial(condition_trial)
     stim_onset = clock.getTime()
+    meditation_clicks = []
 
     event_info = {
         "event_code": TRIGGER_CODES.get(condition_trial, 0),
@@ -1388,11 +1430,11 @@ def run_trial(condition_trial, block_idx, trial_idx, vigilance_task=None):
             condition_trial,
             send_lsl=True,
             send_ttl=True,
-            ttl_code=DIGITIMER_TTL_CODE
+            ttl_code=TTL_BYTE
         )
 
     # Audio only
-    elif condition_trial in ["AN", "AF", "P3A"]:
+    elif condition_trial in ["AN", "AF"]:
         event_info = send_event(condition_trial, send_lsl=True, send_ttl=False)
         audio_play_call_time = core.getTime()
 
@@ -1400,27 +1442,35 @@ def run_trial(condition_trial, block_idx, trial_idx, vigilance_task=None):
             play_sound_obj(NOISE_RIGHT)
         elif condition_trial == "AF":
             play_sound_obj(NOISE_LEFT)
-        elif condition_trial == "P3A":
-            play_sound_obj(TONE_P3A)
 
-    # Audio + tactile
+    # Audio + tactile - synchronized
     elif condition_trial in ["ANT", "AFT"]:
-        event_info = send_event(
-            condition_trial,
-            send_lsl=True,
-            send_ttl=True,
-            ttl_code=DIGITIMER_TTL_CODE
-        )
-        audio_play_call_time = core.getTime()
-
         if condition_trial == "ANT":
-            play_sound_obj(NOISE_RIGHT)
+            sound_to_play = NOISE_RIGHT
         elif condition_trial == "AFT":
-            play_sound_obj(NOISE_LEFT)
+            sound_to_play = NOISE_LEFT
+
+        sound_to_play.stop()
+
+        lsl_time = send_lsl_marker(TRIGGER_CODES.get(condition_trial, 0))
+        ttl_on_time, ttl_off_time = send_arduino_ttl()
+
+        audio_play_call_time = core.getTime()
+        sound_to_play.play()
+
+        event_info = {
+            "event_code": TRIGGER_CODES.get(condition_trial, 0),
+            "local_time": core.getTime(),
+            "lsl_time": lsl_time,
+            "ttl_on_time": ttl_on_time,
+            "ttl_off_time": ttl_off_time,
+            "ttl_sent": 1 if arduino is not None else 0,
+            "lsl_sent": 1 if marker_outlet is not None else 0,
+        }
 
     # Stimulus presentation window
     stim_offset = stim_onset + DURATION_AUDIO
-    frame_loop_until(stim_offset, vigilance_task=vigilance_task)
+    frame_loop_until(stim_offset, vigilance_task=vigilance_task, track_meditation_clicks=meditation_clicks, stim_onset=stim_onset)
     stop_all_sounds()
 
     # Offset marker
@@ -1429,13 +1479,17 @@ def run_trial(condition_trial, block_idx, trial_idx, vigilance_task=None):
     # Inter-stimulus interval
     isi = random.choice(ISI_VALUES_PPS)
     trial_end = stim_offset + isi
-    frame_loop_until(trial_end, vigilance_task=vigilance_task)
+    frame_loop_until(trial_end, vigilance_task=vigilance_task, track_meditation_clicks=meditation_clicks, stim_onset=stim_onset)
 
-    # Save trial row
+    stim_offset_clock = stim_onset + DURATION_AUDIO
+    trigger_code_offset = TRIGGER_CODES.get(condition_trial + "_OFF", 0)
+
+    meditation_click_times_str = ",".join(f"{t:.3f}" for t in meditation_clicks) if meditation_clicks else ""
+
     trial_log_rows.append({
         "participant_num": pp_id,
         "language": language,
-        "group":group,
+        "group": group,
         "datetime": session_dt,
         "condition_task": condition_task,
         "block": block_idx + 1,
@@ -1446,13 +1500,17 @@ def run_trial(condition_trial, block_idx, trial_idx, vigilance_task=None):
         "tactile_present": int(tactile_present),
         "isi_sec": isi,
         "stim_onset_clock": round(stim_onset, 6),
+        "stim_offset_clock": round(stim_offset_clock, 6),
         "trigger_code": event_info["event_code"],
+        "trigger_code_offset": trigger_code_offset,
         "lsl_sent": event_info["lsl_sent"],
         "ttl_sent": event_info["ttl_sent"],
         "lsl_time": event_info["lsl_time"],
         "ttl_on_time": event_info["ttl_on_time"],
         "ttl_off_time": event_info["ttl_off_time"],
         "audio_play_call_time": audio_play_call_time,
+        "meditation_click_count": len(meditation_clicks),
+        "meditation_click_times": meditation_click_times_str,
     })
 
 # ============================================================
@@ -1548,26 +1606,70 @@ rt_block_position = select_single_key(
 print(f"RT block position: {rt_block_position}")
 
 # ============================================================
-# AUDIO CALIBRATION INTRO
-show_instruction_space(
-    TEXTS[language]["calibration_intro"],
-    TEXTS[language]["consigne_stimuli_hint"],
-)
-
-# ============================================================
-# AUDIO CALIBRATION
-show_calibration_psychophysical()
-
-# ============================================================
 # STIMULUS FAMILIARIZATION
 show_stimulus_familiarization()
 
 # ============================================================
-# GENERAL INSTRUCTION ABOUT STIMULI (same for all conditions)
+# BUILD DYNAMIC TASK ORDER TEXT
+cond_1 = condition_task
+cond_2 = "V" if cond_1 == "M" else "M"
+
+task_order = []
+if rt_block_position == "B":
+    task_order = ["RT", cond_1, cond_2]
+else:
+    task_order = [cond_1, cond_2, "RT"]
+
+task_descriptions = {
+    "RT": TEXTS[language]["task_rt_desc"],
+    "M": TEXTS[language]["task_m_desc"],
+    "V": TEXTS[language]["task_v_desc"],
+}
+
+task_order_text = TEXTS[language]["task_intro_start"]
+for i, task in enumerate(task_order, 1):
+    task_order_text += f"\n\n{i}. {task_descriptions[task]}"
+
 show_instruction_space(
-    TEXTS[language]["consigne_stimuli"],
+    task_order_text,
     TEXTS[language]["consigne_stimuli_hint"],
 )
+
+# ============================================================
+# TASK 1 SPECIFIC INSTRUCTIONS
+first_task = task_order[0]
+
+if first_task == "RT":
+    show_instruction_space(
+        TEXTS[language]["task_1_rt_first"],
+        TEXTS[language]["task_1_hint"],
+    )
+    show_instruction_space(
+        TEXTS[language]["resting_state_intro_before_task"],
+        TEXTS[language]["task_1_hint"],
+    )
+elif first_task == "V":
+    show_instruction_space(
+        TEXTS[language]["task_1_v_first"],
+        TEXTS[language]["task_1_hint"],
+    )
+    show_instruction_space(
+        TEXTS[language]["resting_state_intro_before_task"],
+        TEXTS[language]["task_1_hint"],
+    )
+else:  # first_task == "M"
+    show_instruction_space(
+        TEXTS[language]["consigne_M_E_first"] if group == "E" else TEXTS[language]["consigne_M_C_first"],
+        TEXTS[language]["consigne_hint"],
+    )
+    show_instruction_space(
+        TEXTS[language]["resting_state_intro_before_m"],
+        TEXTS[language]["task_1_hint"],
+    )
+    show_instruction_space(
+        TEXTS[language]["meditation_intro_before_task"],
+        TEXTS[language]["task_1_hint"],
+    )
 
 # ============================================================
 # SESSION TIMESTAMP (for log filenames)
@@ -1595,7 +1697,7 @@ class VigilanceTaskPractice:
         ]
 
         self.image_stims = {
-            p: visual.ImageStim(self.win, image=p, size=(200, 200))
+            p: visual.ImageStim(self.win, image=p, size=(350, 350))
             for p in self.stimuli
         }
 
@@ -1612,7 +1714,8 @@ class VigilanceTaskPractice:
     def show(self):
         clear_keyboard()
         fruit_idx = 0
-        t_end = core.getTime() + (self.total_fruit_count * (DURATION_FRUIT + ISI_FRUIT))
+        avg_isi = np.mean(ISI_VALUES_FRUIT)
+        t_end = core.getTime() + (self.total_fruit_count * (DURATION_FRUIT + avg_isi))
 
         while core.getTime() < t_end and fruit_idx < len(self.fruits_displayed):
             check_escape()
@@ -1627,7 +1730,7 @@ class VigilanceTaskPractice:
                 fruit_idx += 1
 
             win.flip()
-            core.wait(DURATION_FRUIT + ISI_FRUIT)
+            core.wait(DURATION_FRUIT + random.choice(ISI_VALUES_FRUIT))
 
 def run_vigilance_practice():
     # Introduction to practice phase
@@ -1642,15 +1745,13 @@ def run_vigilance_practice():
         practice_vigilance = VigilanceTaskContinuous(win)
         practice_vigilance.start(clock.getTime())
 
-        # Mini block with ~3 practice trials (mix of conditions)
-        practice_trials = ["AN", "T", "AF"]
-        t_end = clock.getTime() + 20.0  # 20 seconds of practice
+        # Practice trials: 3 of each stimulus (15 trials total)
+        practice_block = ["T", "AN", "AF", "ANT", "AFT"] * 3
+        random.shuffle(practice_block)
         trial_idx = 0
 
-        while clock.getTime() < t_end and trial_idx < len(practice_trials):
+        for cond_trial in practice_block:
             check_escape()
-            cond_trial = practice_trials[trial_idx]
-
             # Run trial with PPS stimulation + vigilance task
             run_trial(cond_trial, block_idx=0, trial_idx=trial_idx, vigilance_task=practice_vigilance)
             trial_idx += 1
@@ -1676,7 +1777,7 @@ def run_vigilance_practice():
 def run_meditation_preparation():
     # Meditation preparation period - just display "Méditation" / "Meditation"
     clear_keyboard()
-    t_end = core.getTime() + DURATION_MEDITATION_PREP
+    t_end = core.getTime() + DURATION_MEDITATION
 
     while core.getTime() < t_end:
         check_escape()
@@ -1693,15 +1794,13 @@ def run_meditation_practice():
 
     repeat_training = True
     while repeat_training:
-        # Mini meditation task with ~3 PPS trials
-        practice_trials = ["AN", "T", "AF"]
-        t_end = clock.getTime() + 20.0  # 20 seconds of practice
+        # Practice trials: 3 of each stimulus (15 trials total)
+        practice_block = ["T", "AN", "AF", "ANT", "AFT"] * 3
+        random.shuffle(practice_block)
         trial_idx = 0
 
-        while clock.getTime() < t_end and trial_idx < len(practice_trials):
+        for cond_trial in practice_block:
             check_escape()
-            cond_trial = practice_trials[trial_idx]
-
             # Run trial with PPS stimulation only (no vigilance task)
             run_trial(cond_trial, block_idx=0, trial_idx=trial_idx, vigilance_task=None)
             trial_idx += 1
@@ -1757,25 +1856,19 @@ def run_condition_task(cond, is_first=False):
     if condition_task == "V":
         run_vigilance_practice()
     elif condition_task == "M":
-        # Meditation preparation period (only for experts)
-        if group == "E":
-            run_meditation_preparation()
         run_meditation_practice()
 
-    if is_first:
-        show_resting_state()
-
     send_event("EXP_START", send_lsl=True, send_ttl=False)
-    show_baseline(DURATION_BASELINE, send_markers=True)
 
     for block_idx, block in enumerate(all_blocks):
         print(f"\nStart block {block_idx + 1}/{NUM_BLOCKS_PPS}")
 
-        show_baseline(DURATION_BASELINE_BLOCK, send_markers=True)
+        fixation_duration = FIXATION_BEFORE_FIRST_BLOCK if block_idx == 0 else FIXATION_BEFORE_LATER_BLOCK
+        show_baseline(fixation_duration, send_markers=True)
         send_event("BLOCK_START", send_lsl=True, send_ttl=False)
         block_t0 = clock.getTime()
 
-        counts = {k: 0 for k in PPS_CONDITIONS + [EXTRA_CONDITION]}
+        counts = {k: 0 for k in PPS_CONDITIONS}
 
         if condition_task == "V":
             vigilance_task.start(clock.getTime())
@@ -1815,7 +1908,6 @@ def run_condition_task(cond, is_first=False):
             "n_AF": counts["AF"],
             "n_ANT": counts["ANT"],
             "n_AFT": counts["AFT"],
-            "n_P3A": counts["P3A"],
             "block_duration_sec": round(block_duration, 3),
         }
 
@@ -1853,7 +1945,7 @@ def run_rt_practice():
         # Send event and play sounds (same as run_trial)
         if cond_trial == "T":
             print("T:", end=" ")
-            send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=DIGITIMER_TTL_CODE)
+            send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=TTL_BYTE)
         elif cond_trial == "AN":
             print("AN:", end=" ")
             send_event(cond_trial, send_lsl=True, send_ttl=False)
@@ -1864,11 +1956,11 @@ def run_rt_practice():
             play_sound_obj(NOISE_LEFT)
         elif cond_trial == "ANT":
             print("ANT:", end=" ")
-            send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=DIGITIMER_TTL_CODE)
+            send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=TTL_BYTE)
             play_sound_obj(NOISE_RIGHT)
         elif cond_trial == "AFT":
             print("AFT:", end=" ")
-            send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=DIGITIMER_TTL_CODE)
+            send_event(cond_trial, send_lsl=True, send_ttl=True, ttl_code=TTL_BYTE)
             play_sound_obj(NOISE_LEFT)
 
         # Stimulus presentation window
@@ -1964,7 +2056,7 @@ def run_rt_block_task(is_first=True):
 
     # 6. Start main RT block
     send_event("RT_BLOCK_START", send_lsl=True, send_ttl=False)
-    show_baseline(DURATION_BASELINE, send_markers=True)
+    show_baseline(DURATION_BASELINE_BEFORE_RT, send_markers=True)
 
     rt_block = build_rt_block()
 
@@ -1999,16 +2091,14 @@ try:
     if rt_block_position == "B":
         run_rt_block_task(is_first=True)
 
+    # Meditation preparation (one-time only, before any PPS task block)
+    if group == "E":
+        run_meditation_preparation()
+
+    # Resting state (one-time only, before any PPS task block)
+    show_resting_state()
+
     run_condition_task(cond_1, is_first=True)
-
-    # Pause between conditions
-    show_instruction_space(
-        TEXTS[language]["condition_pause"],
-        TEXTS[language]["condition_pause_hint"],
-        start_key="CONDITION_PAUSE_START",
-        end_key="CONDITION_PAUSE_END"
-    )
-
     run_condition_task(cond_2, is_first=False)
 
     if rt_block_position == "A":
@@ -2020,7 +2110,7 @@ finally:
 # ============================================================
 # END SCREEN
 send_event("END_SCREEN_START", send_lsl=True, send_ttl=False)
-draw_text(TEXTS[language]["end"], height=24, wrap=TEXT_WRAP)
+draw_text(TEXTS[language]["end"], height=52, wrap=TEXT_WRAP)
 win.flip()
 core.wait(3)
 send_event("END_SCREEN_END", send_lsl=True, send_ttl=False)
