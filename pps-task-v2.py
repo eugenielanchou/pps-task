@@ -71,9 +71,10 @@ DURATION_FEEDBACK = 3.0
 FEEDBACK_GOOD_MAX_ERROR = 3.0
 
 # Resting state and meditation
+DURATION_BASELINE_STATE = 300.0  # 5 minutes initial baseline at start of experiment
 DURATION_RESTING_STATE_MSG = 6.0  # intro message before the fixation cross, auto-timed (V condition only)
 DURATION_MEDITATION = 480.0  # 8 minutes fixation cross for M condition
-DURATION_BASELINE = 120.0  # (METTRE 120) 2 minutes fixation cross for V condition
+DURATION_BASELINE_CONDITION = 120.0  # 2 minutes fixation cross per condition
 DURATION_TASK_START_MSG = 3.0
 DURATION_VIGILANCE_1 = 3.0    # short instruction shown at the start of EACH V block
 DURATION_END = 3.0            # final "thank you" screen, auto-timed
@@ -105,10 +106,10 @@ TRIGGER_CODES = {
     "BLOCK_START": 99,
     "BLOCK_END": 98,
     "EXP_END": 96,  # whole-session end marker (fired on normal completion via safe_quit-style abort path, or use CONDITION_END for per-condition end)
-    "BASELINE_START": 95,
-    "BASELINE_END": 94,
-    "RESTING_STATE_START": 93,
-    "RESTING_STATE_END": 92,
+    "BASELINE_STATE_START": 95,
+    "BASELINE_STATE_END": 94,
+    "BASELINE_CONDITION_START": 93,
+    "BASELINE_CONDITION_END": 92,
 
     # Instruction screens
     "LANG_SELECT_START": 100,
@@ -770,7 +771,7 @@ def show_text_timed(text, seconds, height=TEXT_HEIGHT, wrap=TEXT_WRAP, start_key
     if end_key:
         send_event(end_key, send_lsl=True, send_ttl=False)
 
-def show_baseline(seconds, send_markers=False, start_key="BASELINE_START", end_key="BASELINE_END"):
+def show_baseline(seconds, send_markers=False, start_key="BASELINE_CONDITION_START", end_key="BASELINE_CONDITION_END"):
     if send_markers:
         send_event(start_key, send_lsl=True, send_ttl=False)
 
@@ -783,7 +784,7 @@ def show_baseline(seconds, send_markers=False, start_key="BASELINE_START", end_k
     if send_markers:
         send_event(end_key, send_lsl=True, send_ttl=False)
 
-def show_baseline_with_audio(audio_obj, seconds, send_markers=False, start_key="BASELINE_START", end_key="BASELINE_END"):
+def show_baseline_with_audio(audio_obj, seconds, send_markers=False, start_key="BASELINE_CONDITION_START", end_key="BASELINE_CONDITION_END"):
     if send_markers:
         send_event(start_key, send_lsl=True, send_ttl=False)
 
@@ -798,6 +799,16 @@ def show_baseline_with_audio(audio_obj, seconds, send_markers=False, start_key="
     if send_markers:
         send_event(end_key, send_lsl=True, send_ttl=False)
 
+def show_baseline_state():
+    """Initial baseline at the start of the experiment (5 minutes).
+    Shown once, before any conditions start."""
+    show_baseline(
+        DURATION_BASELINE_STATE,
+        send_markers=True,
+        start_key="BASELINE_STATE_START",
+        end_key="BASELINE_STATE_END",
+    )
+
 def show_resting_state():
     """Called once per V condition: intro message (auto-timed) -> 2-minute
     fixation cross -> "task will start" message (auto-timed)."""
@@ -807,7 +818,7 @@ def show_resting_state():
         start_key="RESTING_STATE_INSTR_START", end_key="RESTING_STATE_INSTR_END",
     )
     show_baseline(
-        DURATION_BASELINE,
+        DURATION_BASELINE_CONDITION,
         send_markers=True,
         start_key="RESTING_STATE_START",
         end_key="RESTING_STATE_END",
@@ -1523,6 +1534,10 @@ show_instruction_space(
 session_dt = now_str()
 
 # ============================================================
+# INITIAL BASELINE STATE (5 minutes at the very start)
+show_baseline_state()
+
+# ============================================================
 # MAIN LOOP
 
 def show_condition_transition_pause():
@@ -1562,7 +1577,7 @@ def run_condition_task(cond):
 
     # Resting state fixation baseline (2 minutes for all conditions)
     show_baseline(
-        DURATION_BASELINE,
+        DURATION_BASELINE_CONDITION,
         send_markers=True,
         start_key="RESTING_STATE_START",
         end_key="RESTING_STATE_END",
@@ -1604,10 +1619,10 @@ def run_condition_task(cond):
         # Meditation preparation period (8 min): audio guidance for controls, silent fixation for experts
         if group == "C":
             show_baseline_with_audio(MEDITATION_AUDIO, DURATION_MEDITATION, send_markers=True,
-                                     start_key="RESTING_STATE_START", end_key="RESTING_STATE_END")
+                                     start_key="BASELINE_CONDITION_START", end_key="BASELINE_CONDITION_END")
         else:
             show_baseline(DURATION_MEDITATION, send_markers=True,
-                         start_key="RESTING_STATE_START", end_key="RESTING_STATE_END")
+                         start_key="BASELINE_CONDITION_START", end_key="BASELINE_CONDITION_END")
 
         # Gong sounds at the end of fixation (before stimuli begin, experts only)
         if group == "E":
