@@ -1,0 +1,2376 @@
+import os
+import csv
+import random
+from datetime import datetime
+import wave
+import numpy as np
+import serial
+import sys
+from pylsl import StreamInfo, StreamOutlet, local_clock
+from psychopy import prefs
+
+# ============================================================
+# MACHINE-SPECIFIC SETTINGS
+try:
+    from config_local import AUDIO_DEVICE_NAME
+except ImportError:
+    raise RuntimeError(
+        "Missing config_local.py. Copy config_local.example.py to "
+        "config_local.py and fill in AUDIO_DEVICE_NAME for this machine."
+    )
+
+# ============================================================
+# PSYCHOPY AUDIO BACKEND
+# sounddevice must be FIRST in the list to avoid ptb trying first and failing
+prefs.hardware["audioLib"] = ["sounddevice", "pyo", "pygame"]
+prefs.hardware["audioDevice"] = [AUDIO_DEVICE_NAME]
+
+from psychopy import core, visual, sound, event
+from psychopy.hardware import keyboard
+
+# ============================================================
+# GLOBAL FLAGS
+LSL_AVAILABLE = True
+SERIAL_AVAILABLE = True
+ARDUINO_ENABLED = False
+
+# GENERAL PATHS
+DATA_DIR = "data"
+AUDIO_DIR = "audio"
+
+# ============================================================
+# ARDUINO VIBRATOR SETTINGS
+ARDUINO_PORT = "COM5"
+ARDUINO_BAUDRATE = 115200
+TTL_BYTE = 1
+DURATION_TACTILE = 50  # ms - sent to Arduino, firmware clamps any value below 50ms
+INTENSITY = 150
+
+# ============================================================
+# EXPERIMENT DESIGN
+NUM_BLOCKS_PPS = 6
+TRIALS_PER_CONDITION_PER_BLOCK = 11
+PPS_CONDITIONS = ["T", "AN", "AF", "ANT", "AFT"]
+
+# ============================================================
+# TIMING PARAMETERS (all in seconds unless otherwise noted)
+
+# Audio stimulus
+DURATION_AUDIO = 0.1
+ISI_VALUES_PPS = [2.5, 2.6, 2.7, 2.8, 2.9, 3.0]
+
+# Vigilance task (strawberry counting)
+DURATION_FRUIT = 1
+ISI_VALUES_FRUIT = [0.7, 0.75, 0.8, 0.85, 0.9, 0.95, 1.0]
+
+# Block timing and fixation
+FIXATION_BEFORE_BLOCK = 7.0
+DURATION_END_BLOCK = 1.0
+DURATION_AFTER_BLOCK = 3.0  # inter-block message (after_block_M/V/rt), auto-timed
+DURATION_FEEDBACK = 3.0
+FEEDBACK_GOOD_MAX_ERROR = 3.0
+
+# Resting state and meditation
+DURATION_BASELINE_STATE = 3.0  # 5 minutes initial baseline at start of experiment
+DURATION_RESTING_STATE_MSG = 6.0  # intro message before the fixation cross, auto-timed
+DURATION_INDUCTION_MEDITATION = 4.0  # 8 minutes fixation cross for M condition
+DURATION_INDUCTION_VIGILANCE = 4.0  # 8 minutes fixation cross for V condition
+DURATION_BASELINE_CONDITION = 1.0  # 2 minutes fixation cross per condition
+DURATION_TASK_START_MSG = 3.0
+DURATION_VIGILANCE_1 = 3.0    # short instruction shown at the start of EACH V block
+DURATION_END = 3.0            # final "thank you" screen, auto-timed
+
+# ============================================================
+# PHENOMENOLOGY SCALE PARAMETERS
+# --- For questions AFTER baseline/induction (vertical style) ---
+PHENO_V_FONT_OPTION = 36
+PHENO_V_FONT_LABEL = 32
+PHENO_V_SCALE_X = -520
+PHENO_V_SCALE_LABEL_OFFSET_X = 720
+PHENO_V_SCALE_LABEL_WRAP = 1300
+PHENO_V_SCALE_SPACING = 50
+PHENO_V_FIRST_OPTION_Y = 140
+PHENO_V_BOX_W = 70
+PHENO_V_BOX_H = 60
+PHENO_V_BOX_LINE_WIDTH = 2
+
+# --- For questions AFTER PPS blocks (pheno_bloc style) ---
+# Bloc-specific layout differences (reuses V constants where identical)
+PHENO_BLOC_FONT_QUESTION = 48
+PHENO_BLOC_FONT_TIME_HALF = 36
+PHENO_BLOC_POS_Y_QUESTION = 300
+PHENO_BLOC_POS_Y_TIME_HALF = 180
+PHENO_BLOC_V_SCALE_TOP_FIXED_Y = 90
+PHENO_BLOC_V_SCALE_CENTER_Y = -80
+PHENO_BLOC_H_SCALE_Y = 0
+PHENO_BLOC_H_SCALE_SPACING = 70
+PHENO_BLOC_H_SCALE_START_X = -550
+PHENO_BLOC_H_SCALE_LABEL_OFFSET_Y = 70
+
+# ============================================================
+# DISPLAY PARAMETERS
+TEXT_HEIGHT = 56
+TEXT_WRAP = 1400
+
+# ============================================================
+# AUDIO PARAMETERS
+SAMPLE_RATE = 44100
+P3A_FREQ = 1000
+TARGET_RMS = 0.08
+
+# ============================================================
+# TRIGGER CODES FOR LSL
+TRIGGER_CODES = {
+    "T": 1,
+    "AN": 2,
+    "AF": 3,
+    "ANT": 4,
+    "AFT": 5,
+    "T_OFF": 11,
+    "AN_OFF": 12,
+    "AF_OFF": 13,
+    "ANT_OFF": 14,
+    "AFT_OFF": 15,
+    "BLOCK_START": 99,
+    "BLOCK_END": 98,
+    "EXP_END": 96,  # whole-session end marker (fired on normal completion via safe_quit-style abort path, or use CONDITION_END for per-condition end)
+    "BASELINE_STATE_START": 95,
+    "BASELINE_STATE_END": 94,
+    "BASELINE_CONDITION_START": 93,
+    "BASELINE_CONDITION_END": 92,
+
+    # Instruction screens
+    "LANG_SELECT_START": 100,
+    "PARTICIPANT_ID_START": 104,
+    "CONDITION_SELECT_START": 106,
+    "RESTING_STATE_INSTR_START": 108,
+    "RESTING_STATE_INSTR_END": 109,
+    "TASK_START_MSG_START": 110,
+    "TASK_START_MSG_END": 111,
+    "CONSIGNE_M_START": 112,
+    "CONSIGNE_M_END": 113,
+    "CONSIGNE_V_START": 114,
+    "CONSIGNE_V_END": 115,
+    "BLOCK_BREAK_START": 116,
+    "BLOCK_BREAK_END": 117,
+    "IPAD_PHENO_START": 118,
+    "IPAD_PHENO_END": 119,
+    "FEEDBACK_START": 122,
+    "FEEDBACK_END": 123,
+    "TRANSITION_START": 124,
+    "TRANSITION_END": 125,
+    "END_SCREEN_START": 126,
+    "END_SCREEN_END": 127,
+    "STRAWBERRY_QUESTION_START": 128,
+    "STRAWBERRY_QUESTION_END": 129,
+    "STRAWBERRY_DISPLAY": 130,
+    "OTHER_FRUIT_DISPLAY": 134,
+    "RT_BLOCK_START": 131,
+    "RT_BLOCK_END": 132,
+    "RT_RESPONSE": 133,
+    "MEDITATION_CLICK": 140,
+
+    "CONDITION_START": 141,
+    "CONDITION_END": 142,
+
+    "MEDITATION_1_START": 143,
+    "MEDITATION_1_END": 144,
+    "MEDITATION_2_START": 145,
+    "MEDITATION_2_END": 146,
+    "VIGILANCE_1_START": 147,
+    "VIGILANCE_1_END": 148,
+    "AFTER_BLOCK_START": 149,
+    "AFTER_BLOCK_END": 150,
+    "INDUCTION_MEDITATION_START": 151,
+    "INDUCTION_MEDITATION_END": 152,
+    "INDUCTION_VIGILANCE_START": 153,
+    "INDUCTION_VIGILANCE_END": 154,
+}
+
+# ============================================================
+# INSTRUCTION TEXTS
+# Organized in order of appearance in the experiment
+TEXTS = {
+    "fr": {
+        # ===== STARTUP & INFO COLLECTION =====
+        "lang_select": "Pour avoir les consignes en français, appuyez sur : F\n\nTo have the instructions in English, press: E",
+        "participant_heading": "Le numéro du participant :",
+        "participant_hint": "Tapez l'identifiant, puis appuyez sur la barre d'espace.",
+        "condition_heading": "La condition :",
+        "rt_timing_heading": "Le RT :",
+
+        # ===== FAMILIARIZATION =====
+        "intro_hint": "Cliquer sur la barre d'espace.",
+        "famil_intro": "Au cours de cette expérience, vous entendrez des sons provenant de deux enceintes et ressentirez une légère vibration au niveau du torse.\n\nNous allons d'abord vous familiariser avec ces différentes sensations.",
+        "famil_near": "Vous allez maintenant entendre le son \nPROCHE.",
+        "famil_far": "Vous allez maintenant entendre le son \nLOINTAIN.",
+        "famil_sound_hint": "Appuyez sur la barre d'espace pour l'écouter.",
+        "famil_tactile": "Vous allez maintenant ressentir la vibration.",
+        "famil_tactile_hint": "Appuyez sur la barre d'espace pour la ressentir.",
+        "famil_repeat_question": "Souhaitez-vous recommencer ?",
+
+        # ===== TASK DESCRIPTIONS =====
+        "task_intro_start": "L'expérience se déroulera en trois parties, séparées par de courtes pauses.\n\nLes sons et la vibration seront les mêmes dans chaque partie. Seul l'état dans lequel vous devrez être changera.\n\nVous serez invité à répondre à des questions sur l'écran entre chaque phase.\n",
+       
+        # ===== MEDITATION =====#
+        "meditation_prepare": "Nous allons maintenant commencer une pratique de méditation sur la nature de l'esprit. Laissez votre regard se poser sur la croix qui apparaîtra à l'écran et gardez les yeux ouverts.\n\nVous disposerez de 7 minutes pour cette pratique. Un gong marquera le début et la fin de cette période.",
+        "meditation_reconnection": "Prenez un moment pour vous reconnecter avec votre pratique de la nature de l'esprit. Essayez de maintenir cet état pendant que les sons et les vibrations sont présentés. La pratique consistera en six courts blocs, avec des questions affichées à l'écran entre les blocs.",
+        "meditation_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
+        "consigne_E_M": "Dans cette partie, vous écouterez un enregistrement audio de 8 minutes qui vous guidera vers un état calme. Laissez-vous guider par les instructions.",
+
+        # ===== VIGILANCE =====
+        "vigilance_prepare": "Nous allons maintenant commencer une tâche de concentration. Concentrez votre attention exclusivement sur les sons qui vont sortir des haut-parleurs, en excluant activement les distractions (pensées, émotions, etc.). \n\n \n\nFixez votre regard sur la croix qui va apparaître au centre de l'écran. Restez vigilant, moment après moment.",
+        "vigilance_prepare_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
+        "consigne_E_V": "Dans cette partie, concentrez votre attention sur les sons. Vous entendrez des sons provenant de deux directions.\n\nAppuyez sur la barre d'espace dès que vous entendez DEUX sons LOINTAINS qui se produisent l'un après l'autre.",
+        
+        # ===== BASELINE =====
+        "baseline_induction_instruction": "Veuillez rester assis(e) et regarder en direction de la croix, qui apparaîtra au centre de l'écran. Il s'agit d'un état non méditatif. Il est normal de vous laisser absorber et de vous perdre dans vos pensées et vos émotions. Laissez votre esprit vagabonder.\n\n{duration}",
+
+        # ===== PHENOMENOLOGY QUESTIONS =====
+        "pheno_questions_intro_induction": "Veuillez répondre aux questions suivantes à l'aide des flèches du clavier.\n\nNous vous invitons à vous remémorer la tâche précédente en trois moments successifs : son début, son milieu et sa fin. Répondez séparément à chaque question pour chacun de ces trois moments.",
+        "pheno_questions_intro_bloc": "Veuillez répondre aux questions suivantes à l'aide des flèches du clavier.\n\nNous vous invitons à vous remémorer le bloc précédent en deux moments successifs : son début, et sa fin. Répondez séparément à chaque question pour chacun de ces trois moments.",
+
+        # ===== FAF DETECTION FEEDBACK (V condition only) =====
+        "faf_feedback_title": "Résultats de détection",
+        "faf_feedback_template": "Cibles détectées : {hits}/{total}\nFaux positifs : {fp}\nTaux de détection : {rate:.1f}%\nTR moyen : {rt:.3f}s",
+
+        # ===== AFTER PHENOMENOLOGY (before PPS stimuli start) =====
+        "after_pheno_M": "Prenez quelques instants pour vous replacer dans l'état méditatif.\n\nL'expérience avec les sons et la vibration va bientôt commencer.",
+        "after_pheno_V": "Prenez quelques instants pour vous replacer dans l'état de concentration.\n\nL'expérience avec les sons et la vibration va bientôt commencer.",
+
+        # ===== BREAKS & TRANSITIONS (within a condition, per block) =====
+        "end_block": "Fin du bloc {}/{}.",
+        "after_block_M": "Prenez quelques instants pour vous replacer dans l'état méditatif.\n\nL'expérience reprendra bientôt.",
+        "after_block_V": "La même tâche va reprendre.\n\nInstallez-vous confortablement et portez votre attention sur les sons.",
+
+        # ===== BETWEEN CONDITIONS / BEFORE RT =====
+        "pause_condition_1": "Fin de la première partie.\n\nPrenez quelques minutes. Vous pouvez bouger et demander de l'eau à l'expérimentateur si besoin.",
+        "pause_entre_condition_1_hint": "Appuyez sur la barre d'espace quand vous êtes prêt à commencer la partie suivante.",
+        "pause_condition_2": "Fin de la deuxième partie.\n\nPrenez quelques minutes. Vous pouvez bouger et demander de l'eau à l'expérimentateur si besoin.",
+        "pause_entre_condition_2_hint": "Appuyez sur la barre d'espace quand vous êtes prêt à commencer la dernière partie.",
+
+        # ===== REACTION TIME BLOCK =====
+        "rt_between_blocks": "Fin du bloc {}/{}.",
+        "rt_block_end": "Fin du bloc {}/{}.",
+        "after_block_rt": "La même tâche va reprendre.\n\nCliquer aussi rapidement que possible sur la barre d'espace quand vous sentez la VIBRATION.",
+        "rt_training_intro": "Commençons par un court entraînement.",
+        "rt_feedback_good": "Bon !",
+        "rt_feedback_click": "Cliquer !",
+
+        # ===== END =====
+        "end": "Merci beaucoup pour votre participation !",
+    },
+
+    "en": {
+        # ===== STARTUP & INFO COLLECTION =====
+        "lang_select": "Pour avoir les consignes en français, appuyez sur : F\n\nTo have the instructions in English, press: E",
+        "participant_heading": "Participant number:",
+        "participant_hint": "Type the ID, then press the space bar.",
+        "condition_heading": "Condition:",
+        "rt_timing_heading": "RT :",
+
+        # ===== FAMILIARIZATION =====
+        "intro_hint": "Press the space bar.",
+        "famil_intro": "During this experiment, you will hear sounds coming from two speakers and feel a slight vibration on your chest.\n\nWe will first familiarize you with these different sensations.",
+        "famil_near": "You will now hear the NEAR sound.",
+        "famil_far": "You will now hear the FAR sound.",
+        "famil_sound_hint": "Press the space bar to listen.",
+        "famil_tactile": "You will now feel the vibration.",
+        "famil_tactile_hint": "Press the space bar to feel it.",
+        "famil_repeat_question": "Would you like to do it again?",
+
+        # ===== TASK DESCRIPTIONS =====
+        "task_intro_start": "The experiment will unfold in three parts, separated by short breaks.\n\nThe sounds and vibration will be the same in each part. Only the state you must be in will change.\n\nYou will be asked to answer questions on the screen between each phase.",
+
+
+        # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
+        "meditation_prepare": "We will now begin a meditation practice on the Nature of Mind. Let your gaze rest on the cross that will appear on the screen, and keep your eyes open.\n\nYou will have 7 minutes for this practice. A gong will mark the beginning and the end of this period.",
+        "meditation_hint": "Press the space bar when you are ready.",
+        "meditation_reconnection": "Please take a moment to reconnect with your Nature of Mind practice. Please try to maintain this state as sounds and vibrations are presented. The practice will consist of six short blocks, with questions displayed on the screen between blocks.",
+        "meditation_start_stimuli": "Sounds and vibration will now arrive. Remain in the meditative state.",
+        "consigne_E_M": "In this part, you will listen to an 8-minute audio recording that will guide you towards a state of calm. Let yourself be guided by the instructions.",
+
+        # ===== VIGILANCE =====
+        "vigilance_prepare": "We will now begin a concentration task. Focus your attention exclusively on the sounds coming from the speakers, actively excluding distractions (thoughts, emotions, etc.). \n\n \n\nFix your gaze on the cross that will appear at the center of the screen. Stay vigilant, moment after moment.",
+        "vigilance_prepare_hint": "Press the space bar when you are ready.",
+        "baseline_induction_instruction": "Please sit still and gaze towards the cross which will appear at the center of the screen. This is a non-meditative state. It is okay to become absorbed and lost in your thoughts and emotions. Allow your mind to wander.\n\n{duration}",
+        "vigilance_start_stimuli": "Sounds will now arrive. Press the space bar when you hear two far sounds that occur one after the other.",
+        "consigne_E_V": "In this part, focus your attention on the sounds. You will hear sounds from two directions.\n\nPress the space bar as soon as you hear TWO FAR sounds that occur one after the other.",
+
+        # ===== PHENOMENOLOGY QUESTIONS =====
+        "pheno_questions_intro_induction": "Please answer the following questions using the arrow keys.\n\nWe invite you to recall the previous task in three successive moments: its beginning, its middle and its end. Answer each question separately for each of these three moments.",
+        "pheno_questions_intro_bloc": "Please answer the following questions using the arrow keys.\n\nWe invite you to recall the previous block in two successive moments: its beginning and its end. Answer each question separately for each of these three moments.",
+
+        # ===== PER-BLOCK PROMPTS (Vigilance) =====
+        "vigilance_1": "Fixate on the cross. Sounds will arrive.",
+
+        # ===== FAF DETECTION FEEDBACK (V condition only) =====
+        "faf_feedback_title": "Detection results",
+        "faf_feedback_template": "Targets detected: {hits}/{total}\nFalse positives: {fp}\nDetection rate: {rate:.1f}%\nAverage RT: {rt:.3f}s",
+
+        # ===== AFTER PHENOMENOLOGY (before PPS stimuli start) =====
+        "after_pheno_M": "Take a moment to reconnect with your practice on the Nature of Mind.\n\nWe ask you to maintain this state to the best of your abilities during the task that is about to start.",
+        "after_pheno_V": "Take a moment to settle back into a focused state.\n\nThe experiment with sounds and vibration will start soon.",
+
+        # ===== BREAKS & TRANSITIONS (within a condition, per block) =====
+        "end_block": "End of block {}/{}.",
+        "after_block_M": "Take a moment to settle back into the meditative state.\n\nThe experiment will resume shortly.",
+        "after_block_V": "The same task will resume.\n\nGet comfortable and focus your attention on the sounds.",
+
+        # ===== BETWEEN CONDITIONS / BEFORE RT =====
+        "pause_condition_1": "End of the first part.\n\nTake a few minutes. You can stretch, relax and ask the experimenter for water if needed.",
+        "pause_entre_condition_1_hint": "Press the space bar when you are ready to begin the next part.",
+        "pause_condition_2": "End of the second part.\n\nTake a few minutes. You can move around and ask the experimenter for water if needed.",
+        "pause_entre_condition_2_hint": "Press the space bar when you are ready to begin the last part.",
+
+        # ===== REACTION TIME BLOCK =====
+        "rt_block_intro": "Press the space bar as soon as you feel the vibration, as quickly as possible.",
+        "rt_between_blocks": "End of block {}/{}.",
+        "rt_block_end": "End of block {}/{}.",
+        "after_block_rt": "The same task will resume.\n\nPress the space bar when you feel the vibration.",
+        "rt_training_intro": "Let's start with a short training.",
+        "rt_feedback_good": "Good!",
+        "rt_feedback_click": "Click!",
+
+        # ===== END =====
+        "end": "Thank you very much for your participation!",
+    }
+}
+
+# ============================================================
+# CSV HEADERS
+BLOCK_FIELDNAMES = [
+    "group", "participant_num", "language", "datetime", "condition_task", "block",
+    "response_strawberries", "real_strawberries", "error", "total_fruits",
+    "trial_sequence", "n_T", "n_AN", "n_AF", "n_ANT", "n_AFT",
+    "block_duration_sec",
+]
+
+TRIAL_FIELDNAMES = [
+    "group", "participant_num", "datetime", "condition_task",
+    "block", "trial_index", "condition_trial",
+    "isi_sec", "stim_onset_clock", "stim_offset_clock", "trigger_code", "trigger_code_offset",
+    "lsl_sent", "ttl_sent", "lsl_time", "ttl_on_time", "ttl_off_time",
+    "audio_play_call_time",
+]
+
+RT_TRIAL_FIELDNAMES = [
+    "group", "participant_num", "datetime", "condition_task",
+    "block", "trial_index", "condition_trial",
+    "isi_sec", "stim_onset_clock", "stim_offset_clock", "trigger_code", "trigger_code_offset",
+    "lsl_sent", "ttl_sent", "lsl_time", "ttl_on_time", "ttl_off_time",
+    "audio_play_call_time", "response_type",
+    "reaction_time_sec", "response_absolute_clock", "response_lsl_time",
+]
+
+PHENO_FIELDNAMES = [
+    "group", "participant_num", "datetime", "block_id", "time_half",
+    "question_num", "question_text", "response",
+]
+
+# ============================================================
+# GLOBAL STATE VARIABLES
+marker_outlet = None
+arduino = None
+block_log_rows = []
+trial_log_rows = []
+rt_log_rows = []
+pheno_log_rows = []
+block_log_path = None
+trial_log_path = None
+rt_log_path = None
+pheno_log_path = None
+language = ""
+group = ""  # "E" (expert meditator) or "C" (control)
+condition_task = ""  # "M" = meditation, "V" = vigilance
+pp_id = ""
+session_dt = ""
+faf_task = None
+rt_timing = ""  # "before" or "after" - when RT block runs relative to M/V conditions
+
+# ============================================================
+# BASIC UTILITIES
+def now_str():
+    return datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+
+def timestamp_for_filename():
+    return datetime.now().strftime("%Y%m%d-%H%M%S")
+
+def ensure_data_dir():
+    os.makedirs(DATA_DIR, exist_ok=True)
+
+def ensure_audio_dir():
+    os.makedirs(AUDIO_DIR, exist_ok=True)
+
+# ============================================================
+# LSL SETUP
+# one marker outlet with integer markers.
+# nominal_srate = 0 means event-based irregular timing.
+def setup_lsl():
+    global marker_outlet
+
+    if not LSL_AVAILABLE:
+        return
+
+    try:
+        info = StreamInfo(
+            name="PPS_Markers",
+            type="Markers",
+            channel_count=1,
+            nominal_srate=0,
+            channel_format="int32",
+            source_id="pps_psychopy_001"
+        )
+
+        chns = info.desc().append_child("channels")
+        ch = chns.append_child("channel")
+        ch.append_child_value("label", "Markers")
+        ch.append_child_value("type", "Markers")
+
+        marker_outlet = StreamOutlet(info)
+        print("LSL marker outlet created: PPS_Markers")
+        core.wait(1.0)
+
+    except Exception as e:
+        print(f"WARNING: Could not create LSL marker outlet: {e}")
+        marker_outlet = None
+
+# ============================================================
+# Arduino setup
+def setup_arduino():
+    global arduino
+    if not ARDUINO_ENABLED or not SERIAL_AVAILABLE:
+        print("Arduino vibrator disabled.")
+        return
+
+    try:
+        arduino = serial.Serial(
+            port=ARDUINO_PORT,
+            baudrate=ARDUINO_BAUDRATE,
+            bytesize=serial.EIGHTBITS,
+            parity=serial.PARITY_NONE,
+            stopbits=serial.STOPBITS_ONE,
+            timeout=0.01,
+            write_timeout=0.01,
+            xonxoff=False,
+            rtscts=False,
+            dsrdtr=False
+        )
+        try:
+            arduino.setDTR(True)
+        except Exception:
+            pass
+        core.wait(0.2)
+        arduino.write(bytes([0]))
+        arduino.flush()
+        core.wait(0.05)
+        print(f"Arduino connected on {ARDUINO_PORT} ({ARDUINO_BAUDRATE} baud)")
+    except Exception as e:
+        print(f"WARNING: Could not open Arduino on {ARDUINO_PORT}: {e}")
+        arduino = None
+        sys.exit(1)
+
+def send_arduino_ttl():
+    ttl_on_time = None
+    ttl_off_time = None
+    if arduino is not None:
+        try:
+            ttl_on_time = core.getTime()
+            arduino.write(f"{DURATION_TACTILE},{INTENSITY}\n".encode("utf-8"))
+            arduino.flush()
+            ttl_off_time = core.getTime()
+        except Exception as e:
+            print(f"WARNING: failed to send Arduino TTL: {e}")
+    return ttl_on_time, ttl_off_time
+
+def send_lsl_marker(code):
+    global marker_outlet
+ 
+    lsl_time = None
+    if marker_outlet is not None:
+        try:
+            lsl_time = local_clock()
+            marker_outlet.push_sample([int(code)], lsl_time)
+        except Exception as e:
+            print(f"WARNING: failed to send LSL marker {code}: {e}")
+    return lsl_time
+
+def send_event(code_key, send_lsl=True, send_ttl=False, ttl_code=TTL_BYTE):
+
+    global marker_outlet
+
+    if isinstance(code_key, str):
+        if code_key not in TRIGGER_CODES:
+            # Hard fail rather than silently sending a 0 marker: a typo'd
+            # trigger key during a real session would otherwise go
+            # unnoticed on the console and only surface during analysis.
+            raise KeyError(f"Unknown trigger key '{code_key}' - check TRIGGER_CODES / spelling.")
+        code = TRIGGER_CODES[code_key]
+    else:
+        code = int(code_key)
+
+    local_time = core.getTime()
+    lsl_time = None
+    ttl_on_time = None
+    ttl_off_time = None
+
+    if send_lsl:
+        lsl_time = send_lsl_marker(code)
+        print(f"sending trigger '{code_key}' = {code} : ")
+
+    if send_ttl:
+        ttl_on_time, ttl_off_time = send_arduino_ttl()
+
+    return {
+        "event_code": code,
+        "local_time": local_time,
+        "lsl_time": lsl_time,
+        "ttl_on_time": ttl_on_time,
+        "ttl_off_time": ttl_off_time,
+        "ttl_sent": int(send_ttl and arduino is not None),
+        "lsl_sent": int(send_lsl and marker_outlet is not None),
+    }
+
+# ============================================================
+# AUDIO GENERATION
+# Audio files are generated on the fly and then loaded by PsychoPy.
+# White noise is panned left/right depending on the condition.
+def normalize_rms(x, target_rms=TARGET_RMS):
+    rms = np.sqrt(np.mean(x ** 2))
+    if rms == 0:
+        return x
+    return (x / rms) * target_rms
+
+def apply_ramp(arr, ramp_ms=5, sr=SAMPLE_RATE):
+    ramp_n = int(sr * ramp_ms / 1000)
+    ramp_up = np.linspace(0, 1, ramp_n, dtype=np.float32)
+    ramp_down = np.linspace(1, 0, ramp_n, dtype=np.float32)
+    arr = arr.copy()
+    arr[:ramp_n] *= ramp_up[:, None]
+    arr[-ramp_n:] *= ramp_down[:, None]
+    return arr
+
+def float_to_int16(stereo_arr):
+    stereo_arr = np.clip(stereo_arr, -1.0, 1.0)
+    return (stereo_arr * 32767).astype(np.int16)
+
+def write_wav_file(path, stereo_arr, sample_rate=SAMPLE_RATE):
+    pcm = float_to_int16(stereo_arr)
+    with wave.open(path, "wb") as wf:
+        wf.setnchannels(2)
+        wf.setsampwidth(2)
+        wf.setframerate(sample_rate)
+        wf.writeframes(pcm.tobytes())
+
+def generate_white_noise_array(duration=DURATION_AUDIO, pan="both", target_rms=TARGET_RMS):
+    n_samples = int(SAMPLE_RATE * duration)
+    noise_arr = np.random.randn(n_samples).astype(np.float32)
+    noise_arr = normalize_rms(noise_arr, target_rms=target_rms).astype(np.float32)
+
+    if pan == "right":
+        stereo = np.column_stack([np.zeros(n_samples, dtype=np.float32), noise_arr])
+    elif pan == "left":
+        stereo = np.column_stack([noise_arr, np.zeros(n_samples, dtype=np.float32)])
+    else:
+        stereo = np.column_stack([noise_arr, noise_arr])
+
+    return apply_ramp(stereo)
+
+def generate_tone_array(freq=P3A_FREQ, duration=DURATION_AUDIO, target_rms=TARGET_RMS):
+    n_samples = int(SAMPLE_RATE * duration)
+    t = np.linspace(0, duration, n_samples, endpoint=False).astype(np.float32)
+    tone_arr = np.sin(2 * np.pi * freq * t).astype(np.float32)
+    tone_arr = normalize_rms(tone_arr, target_rms=target_rms).astype(np.float32)
+    stereo = np.column_stack([tone_arr, tone_arr])
+    return apply_ramp(stereo)
+
+def make_audio_files():
+    ensure_audio_dir()
+
+    noise_right_path = os.path.join(AUDIO_DIR, "noise_right.wav")
+    noise_left_path = os.path.join(AUDIO_DIR, "noise_left.wav")
+
+    write_wav_file(noise_right_path, generate_white_noise_array(pan="right"))
+    write_wav_file(noise_left_path, generate_white_noise_array(pan="left"))
+
+    return noise_right_path, noise_left_path
+
+NOISE_RIGHT_PATH, NOISE_LEFT_PATH = make_audio_files()
+NOISE_RIGHT = sound.Sound(NOISE_RIGHT_PATH)
+NOISE_LEFT = sound.Sound(NOISE_LEFT_PATH)
+GONG = sound.Sound(os.path.join(AUDIO_DIR, "tibetan-bowl.wav"))
+MEDITATION_AUDIO = sound.Sound(os.path.join(AUDIO_DIR, "conscience-ouverte.wav"))
+MEDITATION_AUDIO.volume = 1
+
+def play_sound_obj(sound_obj):
+    # Stop first to avoid overlap from previous trial
+    sound_obj.stop()
+    sound_obj.play()
+def stop_all_sounds():
+    for s in [NOISE_RIGHT, NOISE_LEFT]:
+        try:
+            s.stop()
+        except Exception:
+            pass
+
+# ============================================================
+# WINDOW AND INPUT
+win = visual.Window(fullscr=True, color="black", units="pix", screen=1)
+win.winHandle.activate()  # force OS keyboard focus onto the PsychoPy window -
+# without this, the terminal/IDE that launched the script can keep focus,
+# so the very first key-driven screen (language selection) silently
+# receives no keypresses at all.
+kb = keyboard.Keyboard()
+mouse = event.Mouse(win=win, visible=False)
+
+# ============================================================
+# INITIALIZATION of LSL and Arduino
+# Done before any screen is shown, so every instruction/consigne the
+# participant sees (including language/group/condition selection) can be
+# marked in the EEG/ECG signal.
+setup_lsl()
+setup_arduino()
+
+fixation_h = visual.Line(win, start=(-50, 0), end=(50, 0), lineWidth=8, lineColor="white")
+fixation_v = visual.Line(win, start=(0, -50), end=(0, 50), lineWidth=8, lineColor="white")
+
+def clear_keyboard():
+    kb.clearEvents()
+
+def get_keys(key_list=None, wait_release=False):
+    return kb.getKeys(keyList=key_list, waitRelease=wait_release)
+
+def draw_fixation_only():
+    fixation_h.draw()
+    fixation_v.draw()
+
+def draw_text(text, height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 0), italic=False, color="white", align_text="center", bold=False):
+    stim = visual.TextStim(win, text=text, color=color, height=height, wrapWidth=wrap, pos=pos, italic=italic, alignText=align_text, bold=bold)
+    stim.draw()
+    return stim
+
+def draw_hint(text, pos=(0, -300)):
+    draw_text(text, height=48, wrap=TEXT_WRAP, pos=pos, italic=True)
+
+# ============================================================
+# CSV SAVING
+def write_csv(path, rows, fieldnames):
+    with open(path, "w", newline="", encoding="utf-8") as f:
+        writer = csv.DictWriter(f, fieldnames=fieldnames)
+        writer.writeheader()
+        writer.writerows(rows)
+
+def make_block_log_filename(pp_id, group):
+    ensure_data_dir()
+    return os.path.join(
+        DATA_DIR,
+        f"sub-{pp_id}_group-{group}_{timestamp_for_filename()}_blocks.csv"
+    )
+
+def make_trial_log_filename(pp_id, group):
+    ensure_data_dir()
+    return os.path.join(
+        DATA_DIR,
+        f"sub-{pp_id}_group-{group}_{timestamp_for_filename()}_trials.csv"
+    )
+
+def make_rt_log_filename(pp_id, group):
+    ensure_data_dir()
+    return os.path.join(
+        DATA_DIR,
+        f"sub-{pp_id}_group-{group}_rt_{timestamp_for_filename()}_trials.csv"
+    )
+
+def make_pheno_log_filename(pp_id, group):
+    ensure_data_dir()
+    return os.path.join(
+        DATA_DIR,
+        f"sub-{pp_id}_group-{group}_{timestamp_for_filename()}_pheno.csv"
+    )
+
+def save_logs_now():
+    try:
+        if block_log_path and block_log_rows:
+            write_csv(block_log_path, block_log_rows, BLOCK_FIELDNAMES)
+            print("Saved blocks:", block_log_path)
+    except Exception as e:
+        print("Could not save block log:", e)
+
+    try:
+        if trial_log_path and trial_log_rows:
+            write_csv(trial_log_path, trial_log_rows, TRIAL_FIELDNAMES)
+            print("Saved trials:", trial_log_path)
+    except Exception as e:
+        print("Could not save trial log:", e)
+
+    try:
+        if rt_log_path and rt_log_rows:
+            write_csv(rt_log_path, rt_log_rows, RT_TRIAL_FIELDNAMES)
+            print("Saved RT trials:", rt_log_path)
+    except Exception as e:
+        print("Could not save RT trial log:", e)
+
+    try:
+        if pheno_log_path and pheno_log_rows:
+            write_csv(pheno_log_path, pheno_log_rows, PHENO_FIELDNAMES)
+            print("Saved phenomenology responses:", pheno_log_path)
+    except Exception as e:
+        print("Could not save pheno log:", e)
+
+def save_phenomenology_responses(block_id, responses_dict, question_list, response_keys=None):
+    global pheno_log_rows
+    if response_keys is None:
+        response_keys = [f"q{i}" for i in range(1, len(question_list) + 1)]
+
+    for time_half, responses in responses_dict.items():
+        for idx, (question_text, response_key) in enumerate(zip(question_list, response_keys), 1):
+            if response_key in responses:
+                response = responses[response_key]
+                row = {
+                    "group": group,
+                    "participant_num": pp_id,
+                    "datetime": now_str(),
+                    "block_id": block_id,
+                    "time_half": time_half,
+                    "question_num": idx,
+                    "question_text": question_text,
+                    "response": response,
+                }
+                pheno_log_rows.append(row)
+
+# ============================================================
+# SAFE EXIT
+def safe_quit():
+    try:
+        if arduino is not None:
+            arduino.close()
+    except Exception as e:
+        print(f"Error while closing Arduino: {e}")
+
+    try:
+        stop_all_sounds()
+    except Exception as e:
+        print(f"Error while stopping sounds: {e}")
+
+    try:
+        send_event("EXP_END", send_lsl=True, send_ttl=False)
+    except Exception as e:
+        print(f"Error while sending EXP_END: {e}")
+
+    try:
+        save_logs_now()
+    except Exception as e:
+        print(f"Error while saving logs: {e}")
+
+    try:
+        win.close()
+    except Exception as e:
+        print(f"Error while closing PsychoPy window: {e}")
+
+    core.quit()
+
+def check_escape():
+    keys = get_keys(["escape"])
+    if any(k.name == "escape" for k in keys):
+        safe_quit()
+
+# ============================================================
+# SCREEN HELPERS
+def show_text_space(text, height=TEXT_HEIGHT, wrap=TEXT_WRAP, start_key=None, end_key=None):
+    clear_keyboard()
+    if start_key:
+        send_event(start_key, send_lsl=True, send_ttl=False)
+    while True:
+        check_escape()
+        draw_text(text, height=height, wrap=wrap)
+        win.flip()
+        keys = get_keys(["space", "escape"])
+        if any(k.name == "escape" for k in keys):
+            safe_quit()
+        if any(k.name == "space" for k in keys):
+            break
+    if end_key:
+        send_event(end_key, send_lsl=True, send_ttl=False)
+
+def show_instruction_space(heading, hint, height=TEXT_HEIGHT, wrap=TEXT_WRAP, start_key=None, end_key=None):
+    # Same idea as the group/condition screens: the heading stays prominent,
+    # the "press space to continue" hint is small and italic at the bottom.
+    clear_keyboard()
+    if start_key:
+        send_event(start_key, send_lsl=True, send_ttl=False)
+    while True:
+        check_escape()
+        draw_text(heading, height=height, wrap=wrap, pos=(0, 80))
+        draw_hint(hint)
+        win.flip()
+        keys = get_keys(["space", "escape"])
+        if any(k.name == "escape" for k in keys):
+            safe_quit()
+        if any(k.name == "space" for k in keys):
+            break
+    if end_key:
+        send_event(end_key, send_lsl=True, send_ttl=False)
+
+def show_instruction_space_with_image(heading, hint, image_path, height=TEXT_HEIGHT, wrap=TEXT_WRAP, image_size=(300, 300), start_key=None, end_key=None):
+    clear_keyboard()
+    if start_key:
+        send_event(start_key, send_lsl=True, send_ttl=False)
+
+    image_stim = visual.ImageStim(win, image=image_path, size=image_size)
+
+    while True:
+        check_escape()
+        draw_text(heading, height=height, wrap=wrap, pos=(0, 100))
+        image_stim.pos = (0, -80)
+        image_stim.draw()
+        draw_hint(hint)
+        win.flip()
+        keys = get_keys(["space", "escape"])
+        if any(k.name == "escape" for k in keys):
+            safe_quit()
+        if any(k.name == "space" for k in keys):
+            break
+    if end_key:
+        send_event(end_key, send_lsl=True, send_ttl=False)
+
+def show_text_timed(text, seconds, height=TEXT_HEIGHT, wrap=TEXT_WRAP, start_key=None, end_key=None):
+    if start_key:
+        send_event(start_key, send_lsl=True, send_ttl=False)
+    t_end = core.getTime() + seconds
+    while core.getTime() < t_end:
+        check_escape()
+        draw_text(text, height=height, wrap=wrap)
+        win.flip()
+    if end_key:
+        send_event(end_key, send_lsl=True, send_ttl=False)
+
+def show_baseline(seconds, send_markers=False, start_key="BASELINE_CONDITION_START", end_key="BASELINE_CONDITION_END"):
+    if send_markers:
+        send_event(start_key, send_lsl=True, send_ttl=False)
+
+    t_end = core.getTime() + seconds
+    while core.getTime() < t_end:
+        check_escape()
+        draw_fixation_only()
+        win.flip()
+
+    if send_markers:
+        send_event(end_key, send_lsl=True, send_ttl=False)
+
+def show_baseline_with_audio(audio_obj, seconds, send_markers=False, start_key="BASELINE_CONDITION_START", end_key="BASELINE_CONDITION_END"):
+    if send_markers:
+        send_event(start_key, send_lsl=True, send_ttl=False)
+
+    audio_obj.play()
+    t_end = core.getTime() + seconds
+    while core.getTime() < t_end:
+        check_escape()
+        draw_fixation_only()
+        win.flip()
+    audio_obj.stop()
+
+    if send_markers:
+        send_event(end_key, send_lsl=True, send_ttl=False)
+
+def show_baseline_state():
+    """Initial baseline at the start of the experiment (5 minutes).
+    Shown once, before any conditions start."""
+    show_baseline(
+        DURATION_BASELINE_STATE,
+        send_markers=True,
+        start_key="BASELINE_STATE_START",
+        end_key="BASELINE_STATE_END",
+    )
+
+def show_vigilance_induction_with_sounds(duration, send_markers=False, start_key=None, end_key=None):
+    """Vigilance induction: fixation cross + random near/far sounds with PPS timing."""
+    if send_markers:
+        send_event(start_key, send_lsl=True, send_ttl=False)
+
+    t_end = core.getTime() + duration
+    while core.getTime() < t_end:
+        check_escape()
+
+        condition = random.choice(["AN", "AF"])
+        sound_obj = NOISE_RIGHT if condition == "AN" else NOISE_LEFT
+
+        play_sound_obj(sound_obj)
+        draw_fixation_only()
+        win.flip()
+        core.wait(DURATION_AUDIO)
+
+        stop_all_sounds()
+        isi = random.choice(ISI_VALUES_PPS)
+        core.wait(isi)
+
+        draw_fixation_only()
+        win.flip()
+
+    if send_markers:
+        send_event(end_key, send_lsl=True, send_ttl=False)
+
+def show_resting_state():
+    """Called once per V condition: intro message (auto-timed) -> 2-minute
+    fixation cross -> "task will start" message (auto-timed)."""
+    show_text_timed(
+        TEXTS[language]["resting_state_heading"], seconds=DURATION_RESTING_STATE_MSG,
+        height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+        start_key="RESTING_STATE_INSTR_START", end_key="RESTING_STATE_INSTR_END",
+    )
+    show_instruction_space(
+        TEXTS[language]["resting_state_fixation"],
+        TEXTS[language]["intro_hint"],
+    )
+    show_baseline(
+        DURATION_BASELINE_CONDITION,
+        send_markers=True,
+        start_key="RESTING_STATE_START",
+        end_key="RESTING_STATE_END",
+    )
+
+def show_end_of_block_screen(block_idx):
+    txt = TEXTS[language]["end_block"].format(block_idx + 1, NUM_BLOCKS_PPS)
+    show_text_timed(txt, seconds=DURATION_END_BLOCK, height=56, wrap=TEXT_WRAP,
+                     start_key="BLOCK_BREAK_START", end_key="BLOCK_BREAK_END")
+
+def show_after_block(cond):
+    key_name = "after_block_V" if cond == "V" else "after_block_M"
+    show_text_timed(TEXTS[language][key_name], seconds=DURATION_AFTER_BLOCK, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+                     start_key="AFTER_BLOCK_START", end_key="AFTER_BLOCK_END")
+
+def show_vigilance_prompt():
+    show_text_timed(TEXTS[language]["vigilance_1"], seconds=DURATION_VIGILANCE_1, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+                     start_key="VIGILANCE_1_START", end_key="VIGILANCE_1_END")
+# ============================================================
+# PHENOMENOLOGY QUESTIONS AFTER INDUCTION (vertical style)
+def draw_selection_box_pheno(pos):
+    rect = visual.Rect(win, width=PHENO_V_BOX_W, height=PHENO_V_BOX_H, pos=pos,
+                        fillColor=None, lineColor="yellow", lineWidth=PHENO_V_BOX_LINE_WIDTH)
+    rect.draw()
+
+def draw_question_block_pheno(question_text, time_half=None):
+    draw_text(question_text, height=56, wrap=TEXT_WRAP, pos=(0, 420), color="white")
+    if time_half:
+        time_labels = {"T1": "Beginning", "T2": "Middle", "T3": "End"}
+        label = time_labels.get(time_half, time_half)
+        draw_text(label, height=44, wrap=TEXT_WRAP,
+                   pos=(0, 220), color="yellow", bold=True)
+
+def ask_scale_vertical_pheno(question_text, scale_options, scale_labels, start_idx=1, time_half=None):
+    clear_keyboard()
+    selected_idx = start_idx
+    start_y = PHENO_V_FIRST_OPTION_Y
+
+    while True:
+        check_escape()
+        draw_question_block_pheno(question_text, time_half=time_half)
+
+        for idx, (option, label) in enumerate(zip(scale_options, scale_labels)):
+            y_pos = start_y - idx * PHENO_V_SCALE_SPACING
+            color = "yellow" if idx == selected_idx else "white"
+
+            if idx == selected_idx:
+                draw_selection_box_pheno((PHENO_V_SCALE_X, y_pos))
+
+            draw_text(option, height=PHENO_V_FONT_OPTION, pos=(PHENO_V_SCALE_X, y_pos), color=color)
+            if label:
+                draw_text(label.capitalize(), height=PHENO_V_FONT_LABEL, wrap=PHENO_V_SCALE_LABEL_WRAP,
+                           pos=(PHENO_V_SCALE_X + PHENO_V_SCALE_LABEL_OFFSET_X, y_pos),
+                           color=color, align_text="left")
+
+        win.flip()
+
+        for k in get_keys(["up", "down", "space", "escape"]):
+            if k.name == "escape":
+                safe_quit()
+            elif k.name == "up" and selected_idx > 0:
+                selected_idx -= 1
+            elif k.name == "down" and selected_idx < len(scale_options) - 1:
+                selected_idx += 1
+            elif k.name == "space":
+                return scale_options[selected_idx]
+
+def ask_phenomenology_questions_after_induction():
+    time_moments = ["T1", "T2", "T3"]
+    responses = {}
+
+    # Q1: Eyes open percentage (0-10)
+    q1_txt = "Estimate the percentage of time spent eyes spent."
+    q1_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    q1_labels = ["I do not recall anything about this", "0% of the time", "", "", "", "", "50% of the time", "", "", "", "", "100% of the time"]
+
+    # Q2: Follow instruction successfully (0-10)
+    q2_txt = "How successfully did you follow the instruction?"
+    q2_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    q2_labels = ["I do not recall anything about this", "On average, unsuccessfully", "", "", "", "", " On average, somewhat successfully", "", "", "", "", "On average, very successfully"]
+
+    # Q3: Effort (0-10)
+    q3_txt = "How much effort did you feel during the session?"
+    q3_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    q3_labels = ["I do not recall anything about this", "Very effortful, was hard work", "", "", "", "", "", "", "", "", "", "Utterly effortless; felt the session was spontaneous"]
+
+    # Q4: Energy/arousal (0-10)
+    q4_txt = "What was your level of energy or arousal during the session?"
+    q4_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    q4_labels = ["I do not recall anything about this", "Very low energy (on the verge of falling asleep, or actually asleep)", "", "", "", "", "Average level of energy or arousal", "", "", "", "", "Very high energy or arousal (the high energy that comes from a strong cup of coffee or tea)"]
+
+    # Q5: Monitoring mind movements (0-10)
+    q5_txt = "How much were you monitoring the movements and processes of the mind?"
+    q5_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    q5_labels = ["I do not recall anything about this", "Never (0%)", "", "", "", "", "Sometimes (50%)", "", "", "", "", "Always (100%)"]
+
+    # Q6: Field of awareness (0-10)
+    q6_txt = "Was your field of awareness open, extended, or spacious? Or rather focused and narrow?"
+    q6_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    q6_labels = ["I do not recall anything about this", "Usually extremely open, extended, spacious", "", "", "", "", "Somewhat open, extended, spacious", "", "", "", "", "Usually narrow"]
+
+    # Q7: Thoughts appearing real (0-10)
+    q7_txt = "To what degree did thoughts appear to be real (10) as opposed to appearing just as thoughts (0)? For example, the thought of a strawberry can appear to be a real strawberry, or simply like a thought."
+    q7_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    q7_labels = ["I do not recall anything about this", "Mostly appearing just as thoughts", "", "", "", "", "Sometimes real, sometimes just as thoughts", "", "", "", "", "Mostly appearing to be real"]
+
+    # Q8: Unrelated thoughts frequency (0-10)
+    q8_txt = "How frequently did you have thoughts unrelated to your meditation (inner speech, mental imagery, memories)?"
+    q8_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    q8_labels = ["I do not recall anything about this", "Never (0%)", "", "", "", "", "Moderately (50%)", "", "", "", "", "All the time (100%)"]
+
+    # Q9: Stability vs distraction (0-10)
+    q9_txt = "During the session, how stable or distracted was your practice? (Distraction means attention being drawn away from your practice, for example by getting caught in a thought or losing track of your practice as when you fall asleep)."
+    q9_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    q9_labels = ["I do not recall anything about this", "Unstable, always distracted", "", "", "", "", "Mostly stable, sometimes distracted", "", "", "", "", "The state was completely stable, no distraction (or attention capture)"]
+
+    # Q10: Nature of Mind recognition (X, 0-4)
+    q10_txt = "According to your own understanding, did you experience any moments during the session that you would describe as recognizing the Nature of Mind?"
+    q10_options = ["X", "0", "1", "2", "3", "4"]
+    q10_labels = ["I do not recall enough to answer this question.", "No, I did not recognize the Nature of Mind", "Yes, once", "A few times", "Many times", "Most of the time"]
+
+    # Q11: Confidence in NOM rating (only if NOM != 0, X)
+    q11_txt = "How confident are you about your rating?"
+    q11_options = ["X", "1", "2", "3"]
+    q11_labels = ["I do not recall enough to answer this question.", "Not confident", "A little confident", "Confident"]
+
+    # Q12: Time experience (X, 1-3)
+    q12_txt = "How was time most frequently experienced?"
+    q12_options = ["X", "1", "2", "3"]
+    q12_labels = ["I do not recall anything about this", "Experience seemed beyond time", "I was in the present moment", "I was lost in the future or the past"]
+
+    question_texts = [
+        q1_txt, q2_txt, q3_txt, q4_txt, q5_txt, q6_txt, q7_txt, q8_txt, q9_txt, q10_txt, q11_txt, q12_txt
+    ]
+
+    for moment in time_moments:
+        responses[moment] = {}
+
+    # Q1: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q1"] = ask_scale_vertical_pheno(q1_txt, q1_options, q1_labels, 1, time_half=moment)
+
+    # Q2: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q2"] = ask_scale_vertical_pheno(q2_txt, q2_options, q2_labels, 1, time_half=moment)
+
+    # Q3: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q3"] = ask_scale_vertical_pheno(q3_txt, q3_options, q3_labels, 1, time_half=moment)
+
+    # Q4: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q4"] = ask_scale_vertical_pheno(q4_txt, q4_options, q4_labels, 1, time_half=moment)
+
+    # Q5: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q5"] = ask_scale_vertical_pheno(q5_txt, q5_options, q5_labels, 1, time_half=moment)
+
+    # Q6: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q6"] = ask_scale_vertical_pheno(q6_txt, q6_options, q6_labels, 1, time_half=moment)
+
+    # Q7: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q7"] = ask_scale_vertical_pheno(q7_txt, q7_options, q7_labels, 1, time_half=moment)
+
+    # Q8: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q8"] = ask_scale_vertical_pheno(q8_txt, q8_options, q8_labels, 1, time_half=moment)
+
+    # Q9: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q9"] = ask_scale_vertical_pheno(q9_txt, q9_options, q9_labels, 1, time_half=moment)
+
+    # Q10: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q10"] = ask_scale_vertical_pheno(q10_txt, q10_options, q10_labels, 1, time_half=moment)
+
+    # Q11: Confidence only if NOM != 0, X - Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q11"] = ""
+        if responses[moment]["q10"] not in ["0", "X"]:
+            responses[moment]["q11"] = ask_scale_vertical_pheno(q11_txt, q11_options, q11_labels, 1, time_half=moment)
+
+    # Q12: Ask T1, T2, T3 in sequence
+    for moment in time_moments:
+        responses[moment]["q12"] = ask_scale_vertical_pheno(q12_txt, q12_options, q12_labels, 1, time_half=moment)
+
+    return responses, question_texts
+
+# ============================================================
+# PHENOMENOLOGY QUESTIONS AFTER PPS BLOCKS (pheno_bloc style)
+def draw_selection_box_bloc(pos):
+    rect = visual.Rect(win, width=PHENO_V_BOX_W, height=PHENO_V_BOX_H, pos=pos,
+                        fillColor=None, lineColor="yellow", lineWidth=PHENO_V_BOX_LINE_WIDTH)
+    rect.draw()
+
+def draw_question_block_bloc(question_text, time_half=None):
+    draw_text(question_text, height=PHENO_BLOC_FONT_QUESTION, wrap=TEXT_WRAP, pos=(0, PHENO_BLOC_POS_Y_QUESTION))
+    if time_half:
+        label = "Début (first half of the block)" if time_half == "T1" else "Fin (second half of the block)"
+        draw_text(f"Respond for {label}", height=PHENO_BLOC_FONT_TIME_HALF, wrap=TEXT_WRAP,
+                   pos=(0, PHENO_BLOC_POS_Y_TIME_HALF), color="yellow", bold=True)
+
+def ask_scale_vertical_bloc(question_text, scale_options, scale_labels, start_idx=1, time_half=None, spacing=None, time_half_y=None):
+    if spacing is None:
+        spacing = PHENO_V_SCALE_SPACING
+
+    clear_keyboard()
+    selected_idx = start_idx
+
+    while True:
+        check_escape()
+        draw_question_block_bloc(question_text, time_half=time_half)
+
+        for idx, (option, label) in enumerate(zip(scale_options, scale_labels)):
+            y_pos = PHENO_BLOC_V_SCALE_CENTER_Y - idx * spacing
+            color = "yellow" if idx == selected_idx else "white"
+
+            if idx == selected_idx:
+                draw_selection_box_bloc((PHENO_V_SCALE_X, y_pos))
+
+            draw_text(option, height=PHENO_V_FONT_OPTION, pos=(PHENO_V_SCALE_X, y_pos), color=color)
+            if label:
+                draw_text(label.capitalize(), height=PHENO_V_FONT_LABEL, wrap=PHENO_V_SCALE_LABEL_WRAP,
+                           pos=(PHENO_V_SCALE_X + PHENO_V_SCALE_LABEL_OFFSET_X, y_pos),
+                           color=color, align_text="left")
+
+        win.flip()
+
+        for k in get_keys(["up", "down", "space", "escape"]):
+            if k.name == "escape":
+                safe_quit()
+            elif k.name == "up" and selected_idx > 0:
+                selected_idx -= 1
+            elif k.name == "down" and selected_idx < len(scale_options) - 1:
+                selected_idx += 1
+            elif k.name == "space":
+                return scale_options[selected_idx]
+
+def ask_success_rating_bloc(question_text, time_half=None):
+    clear_keyboard()
+    scale_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
+    scale_labels = ["I do not recall", "unsuccessful", "", "", "", "", "", "", "", "", "", "very successful"]
+    selected_idx = 1
+
+    while True:
+        check_escape()
+        draw_question_block_bloc(question_text, time_half=time_half)
+
+        for idx, (option, label) in enumerate(zip(scale_options, scale_labels)):
+            x_pos = PHENO_BLOC_H_SCALE_START_X + idx * PHENO_BLOC_H_SCALE_SPACING
+            color = "yellow" if idx == selected_idx else "white"
+
+            if idx == selected_idx:
+                draw_selection_box_bloc((x_pos, PHENO_BLOC_H_SCALE_Y))
+
+            draw_text(option, height=PHENO_V_FONT_OPTION, pos=(x_pos, PHENO_BLOC_H_SCALE_Y), color=color)
+            if label and option == "X":
+                draw_text(label, height=28, pos=(x_pos, PHENO_BLOC_H_SCALE_Y + PHENO_BLOC_H_SCALE_LABEL_OFFSET_Y), color=color)
+            elif label:
+                draw_text(label, height=28, pos=(x_pos, PHENO_BLOC_H_SCALE_Y - PHENO_BLOC_H_SCALE_LABEL_OFFSET_Y), color=color)
+
+        win.flip()
+
+        for k in get_keys(["left", "right", "space", "escape"]):
+            if k.name == "escape":
+                safe_quit()
+            elif k.name == "left" and selected_idx > 0:
+                selected_idx -= 1
+            elif k.name == "right" and selected_idx < len(scale_options) - 1:
+                selected_idx += 1
+            elif k.name == "space":
+                return scale_options[selected_idx]
+
+def ask_nom_recognition_bloc(question_text, time_half=None):
+    scale_options = ["X", "0", "1", "2", "3", "4"]
+    scale_labels = ["I do not recall", "no", "yes, once", "a few times", "many times", "most of the time"]
+    return ask_scale_vertical_bloc(question_text, scale_options, scale_labels, start_idx=1,
+                                   time_half=time_half, spacing=PHENO_V_SCALE_SPACING)
+
+def ask_phenomenology_questions_after_block(block_idx):
+    responses = {"T1": {}, "T2": {}}
+
+    # Q1: Ask T1 then T2 in sequence
+    q1_txt = "In this block, and based on your own personal best, how successfully did you follow the instruction?"
+    responses["T1"]["success_rating"] = ask_success_rating_bloc(q1_txt, "T1")
+    responses["T2"]["success_rating"] = ask_success_rating_bloc(q1_txt, "T2")
+
+    # Q2: Ask T1 then T2 in sequence
+    q2_txt = "Did you experience any moments you would describe as recognizing the nature of mind?"
+    responses["T1"]["nom_recognition"] = ask_nom_recognition_bloc(q2_txt, "T1")
+    responses["T2"]["nom_recognition"] = ask_nom_recognition_bloc(q2_txt, "T2")
+
+    # Q3: Ask T1 then T2 in sequence
+    q3_txt = "How confident are you about your rating?"
+    q3_options = ["X", "1", "2", "3"]
+    q3_labels = ["I do not recall", "not confident", "a little confident", "confident"]
+
+    responses["T1"]["nom_confidence"] = ""
+    if responses["T1"]["nom_recognition"] not in ["0", "X"]:
+        responses["T1"]["nom_confidence"] = ask_scale_vertical_bloc(
+            q3_txt, q3_options, q3_labels, 1, time_half="T1")
+
+    responses["T2"]["nom_confidence"] = ""
+    if responses["T2"]["nom_recognition"] not in ["0", "X"]:
+        responses["T2"]["nom_confidence"] = ask_scale_vertical_bloc(
+            q3_txt, q3_options, q3_labels, 1, time_half="T2")
+
+    # Q4: Ask T1 then T2 in sequence
+    q4_txt = "Was there a difference between near sounds and distant sounds?"
+    q4_options = ["0", "1"]
+    q4_labels = ["No", "Yes"]
+    responses["T1"]["near_far_difference"] = ask_scale_vertical_bloc(q4_txt, q4_options, q4_labels, 0, time_half="T1")
+    responses["T2"]["near_far_difference"] = ask_scale_vertical_bloc(q4_txt, q4_options, q4_labels, 0, time_half="T2")
+
+    # Q5: Ask T1 then T2 in sequence
+    q5_txt = "To what extent did you experience a boundary between you and the sounds?"
+    q5_options = ["0", "1", "2"]
+    q5_labels = ["No boundary", "A distance between the perceiving subject and the perceived sound", "A separation between a subject and exterior sounds"]
+    responses["T1"]["boundary_experience"] = ask_scale_vertical_bloc(q5_txt, q5_options, q5_labels, 0, time_half="T1")
+    responses["T2"]["boundary_experience"] = ask_scale_vertical_bloc(q5_txt, q5_options, q5_labels, 0, time_half="T2")
+
+    # Q6: Ask T1 then T2 in sequence
+    q6_txt = "Was there a center of consciousness?"
+    q6_options = ["0", "1", "2"]
+    q6_labels = ["No center", "A subject observing mental phenomena (sounds and vibration)", "A sense of being an agent perceiving exterior stimulations (sounds and vibration)"]
+    responses["T1"]["center_of_consciousness"] = ask_scale_vertical_bloc(q6_txt, q6_options, q6_labels, 0, time_half="T1", spacing=90)
+    responses["T2"]["center_of_consciousness"] = ask_scale_vertical_bloc(q6_txt, q6_options, q6_labels, 0, time_half="T2", spacing=90)
+
+    # Q7: Ask T1 then T2 in sequence
+    q7_txt = "To what extent did you experience sounds as occurring within the mind, or as feeling like they were outside it?"
+    q7_options = ["X", "1", "2", "3"]
+    q7_labels = ["I do not recall anything like this", "The sounds seemed to occur within my mind", "The sounds seemed to occur outside of my mind", "The sounds seemed to occur both within my mind and outside of it"]
+    responses["T1"]["sounds_location"] = ask_scale_vertical_bloc(q7_txt, q7_options, q7_labels, 1, time_half="T1")
+    responses["T2"]["sounds_location"] = ask_scale_vertical_bloc(q7_txt, q7_options, q7_labels, 1, time_half="T2")
+
+    # Q8: Ask T1 then T2 in sequence
+    q8_txt = "To what extent did experiences of sounds involve a separation between the sound being heard and an observer (a 'hearer'), as opposed to no separation?"
+    q8_options = ["X", "1", "2", "3"]
+    q8_labels = ["I do not recall anything about this", "There was no sense of a sound being heard by an observer who was separate from the sound",
+                 "There seemed to be an observer separate from the sound, but without a strong sense of separation",
+                 "There was a clear sense that the sounds were being heard by an observer who was separate from the sounds"]
+    responses["T1"]["sound_observer_separation"] = ask_scale_vertical_bloc(q8_txt, q8_options, q8_labels, 1, time_half="T1", spacing=100)
+    responses["T2"]["sound_observer_separation"] = ask_scale_vertical_bloc(q8_txt, q8_options, q8_labels, 1, time_half="T2", spacing=100)
+
+    question_texts = [q1_txt, q2_txt, q3_txt, q4_txt, q5_txt, q6_txt, q7_txt, q8_txt]
+    return responses, question_texts
+
+def show_faf_feedback(stats):
+    fb_txt = TEXTS[language]["faf_feedback_template"].format(
+        hits=stats["hits"],
+        total=stats["total_targets"],
+        fp=stats["false_positives"],
+        rate=stats["detection_rate"],
+        rt=stats["mean_rt"]
+    )
+    show_text_timed(fb_txt, seconds=DURATION_FEEDBACK, height=56, wrap=TEXT_WRAP,
+                     start_key="FEEDBACK_START", end_key="FEEDBACK_END")
+
+def ask_yes_no_question(question_key="famil_repeat_question"):
+    # No hint shown for these questions (per spec).
+    clear_keyboard()
+    while True:
+        check_escape()
+        draw_text(TEXTS[language][question_key], height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 60))
+        win.flip()
+
+        valid_keys = ["o", "n"] if language == "fr" else ["y", "n"]
+        keys = get_keys(valid_keys + ["escape"])
+        for k in keys:
+            if k.name == "escape":
+                safe_quit()
+            elif k.name in valid_keys:
+                return k.name.lower() == ("o" if language == "fr" else "y")
+
+def show_stimulus_familiarization():
+    show_instruction_space(
+        TEXTS[language]["famil_intro"],
+        TEXTS[language]["intro_hint"],
+    )
+
+    # Audio: 4 presentations in a row (near, far, near, far), then a
+    # single repeat question. Restarts the full 4-presentation sequence
+    # if the answer is yes.
+    while True:
+        for _ in range(2):
+            show_instruction_space(
+                TEXTS[language]["famil_near"],
+                TEXTS[language]["famil_sound_hint"],
+            )
+            play_sound_obj(NOISE_RIGHT)
+            core.wait(DURATION_AUDIO + 0.2)
+            stop_all_sounds()
+
+            show_instruction_space(
+                TEXTS[language]["famil_far"],
+                TEXTS[language]["famil_sound_hint"],
+            )
+            play_sound_obj(NOISE_LEFT)
+            core.wait(DURATION_AUDIO + 0.2)
+            stop_all_sounds()
+
+        if not ask_yes_no_question("famil_repeat_question"):
+            break
+
+    # Tactile: single vibration, then the SAME repeat question key as audio.
+    while True:
+        show_instruction_space(
+            TEXTS[language]["famil_tactile"],
+            TEXTS[language]["famil_tactile_hint"],
+        )
+        send_arduino_ttl()
+        core.wait(0.5)
+
+        if not ask_yes_no_question("famil_repeat_question"):
+            break
+
+# ============================================================
+# INPUT HELPERS
+def collect_single_choice(valid_keys):
+    clear_keyboard()
+    while True:
+        check_escape()
+        keys = get_keys(valid_keys + ["escape"])
+        for k in keys:
+            if k.name == "escape":
+                safe_quit()
+            if k.name in valid_keys:
+                return k.name
+
+def select_single_key(heading, hint=None, valid_keys=None, start_key=None, end_key=None):
+    # The experimenter presses one of the valid keys directly - that key
+    # press itself confirms and advances immediately, no space bar needed.
+    clear_keyboard()
+    if start_key:
+        send_event(start_key, send_lsl=True, send_ttl=False)
+
+    while True:
+        check_escape()
+        draw_text(heading, height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 120))
+        if hint:
+            draw_hint(hint)
+        win.flip()
+
+        keys = get_keys(valid_keys + ["escape"])
+        for k in keys:
+            if k.name == "escape":
+                safe_quit()
+            elif k.name in valid_keys:
+                chosen = k.name.upper()
+                if end_key:
+                    send_event(end_key, send_lsl=True, send_ttl=False)
+                return chosen
+
+LETTER_KEYS = list("abcdefghijklmnopqrstuvwxyz")
+
+def collect_text_input(heading, hint, max_chars=10, start_key=None, end_key=None):
+    # Accepts digits and letters (e.g. participant IDs like "12" or "P03").
+    typed = ""
+    clear_keyboard()
+    digit_keys = [str(i) for i in range(10)] + [f"num_{i}" for i in range(10)]
+    if start_key:
+        send_event(start_key, send_lsl=True, send_ttl=False)
+
+    while True:
+        check_escape()
+        display_text = typed if typed else "_"
+        draw_text(heading, height=TEXT_HEIGHT, wrap=TEXT_WRAP, pos=(0, 120))
+        draw_text(display_text, height=48, wrap=TEXT_WRAP, pos=(0, 0))
+        draw_hint(hint)
+        win.flip()
+
+        keys = get_keys(["space", "backspace", "escape"] + LETTER_KEYS + digit_keys)
+
+        for k in keys:
+            name = k.name
+            if name == "escape":
+                safe_quit()
+            elif name == "space" and typed != "":
+                if end_key:
+                    send_event(end_key, send_lsl=True, send_ttl=False)
+                return typed
+            elif name == "backspace":
+                typed = typed[:-1]
+            elif name.startswith("num_") and len(typed) < max_chars:
+                typed += name[-1]
+            elif (name.isdigit() or name in LETTER_KEYS) and len(typed) < max_chars:
+                typed += name.upper()
+
+# ============================================================
+# BLOCK RANDOMIZATION
+def build_block():
+    # Build one block with balanced conditions
+    trials = []
+    for cond in PPS_CONDITIONS:
+        trials.extend([cond] * TRIALS_PER_CONDITION_PER_BLOCK)
+
+    best_trials = None
+    min_consecutive = 999
+
+    # Try multiple shuffles and keep the best one
+    for _ in range(500):
+        random.shuffle(trials)
+        consecutive_count = sum(
+            1 for i in range(1, len(trials)) if trials[i] == trials[i - 1]
+        )
+        if consecutive_count < min_consecutive:
+            min_consecutive = consecutive_count
+            best_trials = trials.copy()
+        if consecutive_count == 0:
+            break
+
+    if min_consecutive > 0:
+        print(f"Block has {min_consecutive} consecutive pair(s).")
+
+    return best_trials
+
+def build_experiment():
+    return [build_block() for _ in range(NUM_BLOCKS_PPS)]
+
+# ============================================================
+# VIGILANCE TASK - FAF DETECTION
+class FAFDetectionTask:
+    """Tracks consecutive FAF (two far sounds) detection task for V condition."""
+    def __init__(self):
+        self.running = False
+        self.stimulus_history = []
+        self.responses = []
+        self.target_indices = []
+
+    def start(self):
+        self.running = True
+        self.stimulus_history = []
+        self.responses = []
+        self.target_indices = []
+
+    def stop(self):
+        self.running = False
+
+    def add_stimulus(self, condition_trial, trial_idx, stim_onset_time):
+        """Called when a stimulus is presented. Checks if two AF are consecutive."""
+        if not self.running:
+            return
+
+        self.stimulus_history.append({
+            "condition": condition_trial,
+            "trial_idx": trial_idx,
+            "stim_time": stim_onset_time
+        })
+
+        # Check if we have two consecutive AF
+        if len(self.stimulus_history) >= 2:
+            prev_stimulus = self.stimulus_history[-2]["condition"]
+            curr_stimulus = self.stimulus_history[-1]["condition"]
+
+            if prev_stimulus == "AF" and curr_stimulus == "AF":
+                self.target_indices.append(trial_idx)
+
+    def log_response(self, trial_idx, response_time=None):
+        """Log a participant's response (spacebar click)."""
+        if not self.running:
+            return
+
+        self.responses.append({
+            "trial_idx": trial_idx,
+            "response_time": response_time
+        })
+
+    def get_stats(self):
+        """Calculate detection statistics."""
+        target_set = set(self.target_indices)
+        response_set = {r["trial_idx"] for r in self.responses}
+
+        hits = len(target_set & response_set)
+        misses = len(target_set - response_set)
+        false_positives = len(response_set - target_set)
+
+        reaction_times = [r["response_time"] for r in self.responses if r["response_time"] is not None]
+        mean_rt = (sum(reaction_times) / len(reaction_times)) if reaction_times else 0
+
+        total_targets = len(target_set)
+        detection_rate = (hits / total_targets * 100) if total_targets > 0 else 0
+
+        return {
+            "total_targets": total_targets,
+            "hits": hits,
+            "misses": misses,
+            "false_positives": false_positives,
+            "detection_rate": detection_rate,
+            "mean_rt": mean_rt,
+        }
+
+# ============================================================
+# MASTER CLOCK
+clock = core.Clock()
+clock.reset()
+
+def frame_loop_until(t_end, vigilance_task=None, track_meditation_clicks=None, faf_task=None, trial_idx=None, stim_onset=0):
+    button_was_down = False
+    space_key_pressed_this_trial = False
+
+    while True:
+        check_escape()
+        now = clock.getTime()
+
+        if now >= t_end:
+            break
+
+        draw_fixation_only()
+
+        # Detect meditation clicks (only during meditation condition)
+        if track_meditation_clicks is not None and condition_task == "M":
+            buttons = mouse.getPressed()
+            button_is_down = buttons[0]  # Left mouse button
+
+            # Detect rising edge (click begins)
+            if button_is_down and not button_was_down:
+                click_time = now - stim_onset
+                track_meditation_clicks.append(click_time)
+                send_event("MEDITATION_CLICK", send_lsl=True, send_ttl=False)
+
+            button_was_down = button_is_down
+
+        # Detect spacebar presses for FAF detection (only during vigilance condition)
+        if faf_task is not None and condition_task == "V" and not space_key_pressed_this_trial:
+            keys = get_keys(["space"])
+            if any(k.name == "space" for k in keys):
+                response_time = now - stim_onset
+                faf_task.log_response(trial_idx, response_time)
+                send_event("RT_RESPONSE", send_lsl=True, send_ttl=False)
+                space_key_pressed_this_trial = True
+
+        win.flip()
+
+# ============================================================
+# TRIAL LOGIC
+def describe_trial(condition_trial):
+    if condition_trial == "T":
+        return False, True, ""
+    if condition_trial == "AN":
+        return True, False, "near"
+    if condition_trial == "AF":
+        return True, False, "far"
+    if condition_trial == "ANT":
+        return True, True, "near"
+    if condition_trial == "AFT":
+        return True, True, "far"
+    raise ValueError(f"Unknown condition_trial: {condition_trial}")
+
+def build_rt_block():
+    # Build one RT block (55 trials, biased toward audio+tactile)
+    # Two blocks: before (55) + after (55) = 110 total
+    trials = []
+    trials.extend(["T"] * 5)
+    trials.extend(["AN"] * 5)
+    trials.extend(["AF"] * 5)
+    trials.extend(["ANT"] * 20)
+    trials.extend(["AFT"] * 20)
+
+    best_trials = None
+    min_consecutive = 999
+
+    for _ in range(500):
+        random.shuffle(trials)
+        consecutive_count = sum(
+            1 for i in range(1, len(trials)) if trials[i] == trials[i - 1]
+        )
+        if consecutive_count < min_consecutive:
+            min_consecutive = consecutive_count
+            best_trials = trials.copy()
+        if consecutive_count == 0:
+            break
+
+    if min_consecutive > 0:
+        print(f"RT Block has {min_consecutive} consecutive pair(s).")
+
+    return best_trials
+
+def run_rt_trial(condition_trial, trial_idx, block_idx=0):
+    """Run one RT trial with keyboard response detection for tactile stimuli."""
+    global rt_log_rows, marker_outlet
+
+    audio_present, tactile_present, audio_side = describe_trial(condition_trial)
+    stim_onset = clock.getTime()
+
+    event_info = {
+        "event_code": TRIGGER_CODES.get(condition_trial, 0),
+        "local_time": None,
+        "lsl_time": None,
+        "ttl_on_time": None,
+        "ttl_off_time": None,
+        "ttl_sent": 0,
+        "lsl_sent": 0,
+    }
+
+    audio_play_call_time = None
+    response_time = None
+    response_lsl_time = None
+
+    # Tactile only
+    if condition_trial == "T":
+        event_info = send_event(
+            condition_trial,
+            send_lsl=True,
+            send_ttl=True,
+            ttl_code=TTL_BYTE
+        )
+
+    # Audio only
+    elif condition_trial in ["AN", "AF"]:
+        event_info = send_event(condition_trial, send_lsl=True, send_ttl=False)
+        audio_play_call_time = core.getTime()
+
+        if condition_trial == "AN":
+            play_sound_obj(NOISE_RIGHT)
+        elif condition_trial == "AF":
+            play_sound_obj(NOISE_LEFT)
+
+    # Audio + tactile - synchronized.
+    # Sent as TWO separate component markers (AN/AF for the audio onset,
+    # T for the tactile onset) fired at their own true dispatch time,
+    # rather than one blended "ANT"/"AFT" marker. This lets each modality's
+    # onset be latency-corrected independently once measured on the
+    # oscilloscope (audio ~instant, tactile lagged by the vibration
+    # motor's mechanical rise time). The tactile command still goes out
+    # first in code order, since it is the one with the longer physical
+    # latency to compensate for - once you know the measured lag, insert
+    # an explicit core.wait() here between the two calls to align the two
+    # PHYSICAL onsets rather than the two software calls.
+    elif condition_trial in ["ANT", "AFT"]:
+        audio_code = "AN" if condition_trial == "ANT" else "AF"
+        sound_to_play = NOISE_RIGHT if condition_trial == "ANT" else NOISE_LEFT
+
+        sound_to_play.stop()
+
+        # Tactile component first (compensates mechanical lag once calibrated)
+        ttl_on_time, ttl_off_time = send_arduino_ttl()
+        tactile_lsl_time = send_lsl_marker(TRIGGER_CODES["T"])
+
+        # Audio component
+        audio_play_call_time = core.getTime()
+        audio_lsl_time = send_lsl_marker(TRIGGER_CODES[audio_code])
+        sound_to_play.play()
+
+        event_info = {
+            "event_code": TRIGGER_CODES.get(condition_trial, 0),  # kept in the trial log only, not sent as its own EEG marker
+            "local_time": core.getTime(),
+            "lsl_time": audio_lsl_time,
+            "tactile_lsl_time": tactile_lsl_time,
+            "ttl_on_time": ttl_on_time,
+            "ttl_off_time": ttl_off_time,
+            "ttl_sent": 1 if arduino is not None else 0,
+            "lsl_sent": 1 if marker_outlet is not None else 0,
+        }
+
+    # Stimulus presentation window - let sound play
+    stim_offset = stim_onset + DURATION_AUDIO
+    frame_loop_until(stim_offset)
+    stop_all_sounds()
+
+    # Offset marker
+    send_event(condition_trial + "_OFF", send_lsl=True, send_ttl=False)
+
+    # Response detection window. Keys are now ALWAYS checked (not gated
+    # behind tactile_present) so that spurious responses on AN/AF-only
+    # trials (false alarms) are captured rather than silently dropped.
+    clear_keyboard()
+    response_detected = False
+    response_window_end = stim_offset + 1.5
+
+    while clock.getTime() < response_window_end:
+        check_escape()
+        draw_fixation_only()
+        win.flip()
+
+        if not response_detected:
+            keys = get_keys(["space"])
+            if any(k.name == "space" for k in keys):
+                response_time = clock.getTime() - stim_onset
+                response_lsl_time = send_lsl_marker(TRIGGER_CODES["RT_RESPONSE"])
+                response_detected = True
+
+    response_type = "response" if response_detected else "no_response"
+
+    # Inter-stimulus interval
+    isi = random.choice(ISI_VALUES_PPS)
+    trial_end = response_window_end + isi
+    frame_loop_until(trial_end)
+
+    stim_offset_clock = stim_onset + DURATION_AUDIO
+    trigger_code_offset = TRIGGER_CODES.get(condition_trial + "_OFF", 0)
+
+    rt_log_rows.append({
+        "participant_num": pp_id,
+        "group": group,
+        "datetime": session_dt,
+        "condition_task": condition_task,
+        "block": block_idx + 1,
+        "trial_index": trial_idx + 1,
+        "condition_trial": condition_trial,
+        "isi_sec": isi,
+        "stim_onset_clock": round(stim_onset, 6),
+        "stim_offset_clock": round(stim_offset_clock, 6),
+        "trigger_code": event_info["event_code"],
+        "trigger_code_offset": trigger_code_offset,
+        "lsl_sent": event_info["lsl_sent"],
+        "ttl_sent": event_info["ttl_sent"],
+        "lsl_time": event_info["lsl_time"],
+        "ttl_on_time": event_info["ttl_on_time"],
+        "ttl_off_time": event_info["ttl_off_time"],
+        "audio_play_call_time": audio_play_call_time,
+        "response_type": response_type,
+        "reaction_time_sec": round(response_time, 6) if response_time is not None else "",
+        "response_absolute_clock": round(stim_onset + response_time, 6) if response_time is not None else "",
+        "response_lsl_time": response_lsl_time,
+    })
+
+def run_trial(condition_trial, block_idx, trial_idx, faf_task=None):
+    audio_present, tactile_present, audio_side = describe_trial(condition_trial)
+    stim_onset = clock.getTime()
+
+    if faf_task is not None:
+        faf_task.add_stimulus(condition_trial, trial_idx, stim_onset)
+
+    event_info = {
+        "event_code": TRIGGER_CODES.get(condition_trial, 0),
+        "local_time": None,
+        "lsl_time": None,
+        "ttl_on_time": None,
+        "ttl_off_time": None,
+        "ttl_sent": 0,
+        "lsl_sent": 0,
+    }
+
+    audio_play_call_time = None
+
+    # Tactile only
+    if condition_trial == "T":
+        event_info = send_event(
+            condition_trial,
+            send_lsl=True,
+            send_ttl=True,
+            ttl_code=TTL_BYTE
+        )
+
+    # Audio only
+    elif condition_trial in ["AN", "AF"]:
+        event_info = send_event(condition_trial, send_lsl=True, send_ttl=False)
+        audio_play_call_time = core.getTime()
+
+        if condition_trial == "AN":
+            play_sound_obj(NOISE_RIGHT)
+        elif condition_trial == "AF":
+            play_sound_obj(NOISE_LEFT)
+
+    # Audio + tactile - synchronized.
+    # Sent as TWO separate component markers (AN/AF for the audio onset, T
+    # for the tactile onset) at their own true dispatch time, rather than
+    # one blended "ANT"/"AFT" marker - see run_rt_trial for the full
+    # rationale. The condition label ("ANT"/"AFT") is still recorded in
+    # the trial CSV log for bookkeeping; in the EEG marker stream these
+    # trials are identifiable as an AN/AF marker immediately followed by a
+    # T marker (well within the >2s ITI, so unambiguous vs. two separate
+    # unisensory trials).
+    elif condition_trial in ["ANT", "AFT"]:
+        audio_code = "AN" if condition_trial == "ANT" else "AF"
+        sound_to_play = NOISE_RIGHT if condition_trial == "ANT" else NOISE_LEFT
+
+        sound_to_play.stop()
+
+        # Tactile component first (compensates mechanical lag once calibrated
+        # via oscilloscope - insert an explicit core.wait() here once you
+        # know the measured lag, to align the two PHYSICAL onsets)
+        ttl_on_time, ttl_off_time = send_arduino_ttl()
+        tactile_lsl_time = send_lsl_marker(TRIGGER_CODES["T"])
+
+        # Audio component
+        audio_play_call_time = core.getTime()
+        audio_lsl_time = send_lsl_marker(TRIGGER_CODES[audio_code])
+        sound_to_play.play()
+
+        event_info = {
+            "event_code": TRIGGER_CODES.get(condition_trial, 0),  # kept in the trial log only, not sent as its own EEG marker
+            "local_time": core.getTime(),
+            "lsl_time": audio_lsl_time,
+            "tactile_lsl_time": tactile_lsl_time,
+            "ttl_on_time": ttl_on_time,
+            "ttl_off_time": ttl_off_time,
+            "ttl_sent": 1 if arduino is not None else 0,
+            "lsl_sent": 1 if marker_outlet is not None else 0,
+        }
+
+    # Stimulus presentation window
+    stim_offset = stim_onset + DURATION_AUDIO
+    frame_loop_until(stim_offset, faf_task=faf_task, trial_idx=trial_idx, stim_onset=stim_onset)
+    stop_all_sounds()
+
+    # Offset marker
+    send_event(condition_trial + "_OFF", send_lsl=True, send_ttl=False)
+
+    # Inter-stimulus interval
+    isi = random.choice(ISI_VALUES_PPS)
+    trial_end = stim_offset + isi
+    frame_loop_until(trial_end, faf_task=faf_task, trial_idx=trial_idx, stim_onset=stim_onset)
+
+    stim_offset_clock = stim_onset + DURATION_AUDIO
+    trigger_code_offset = TRIGGER_CODES.get(condition_trial + "_OFF", 0)
+
+    trial_log_rows.append({
+        "participant_num": pp_id,
+        "group": group,
+        "datetime": session_dt,
+        "condition_task": condition_task,
+        "block": block_idx + 1,
+        "trial_index": trial_idx + 1,
+        "condition_trial": condition_trial,
+        "isi_sec": isi,
+        "stim_onset_clock": round(stim_onset, 6),
+        "stim_offset_clock": round(stim_offset_clock, 6),
+        "trigger_code": event_info["event_code"],
+        "trigger_code_offset": trigger_code_offset,
+        "lsl_sent": event_info["lsl_sent"],
+        "ttl_sent": event_info["ttl_sent"],
+        "lsl_time": event_info["lsl_time"],
+        "ttl_on_time": event_info["ttl_on_time"],
+        "ttl_off_time": event_info["ttl_off_time"],
+        "audio_play_call_time": audio_play_call_time,
+    })
+
+# ============================================================
+# LANGUAGE SELECTION
+send_event("LANG_SELECT_START", send_lsl=True, send_ttl=False)
+while True:
+    check_escape()
+    draw_text(TEXTS["fr"]["lang_select"], height=TEXT_HEIGHT, wrap=TEXT_WRAP)
+    win.flip()
+
+    key_name = collect_single_choice(["f", "e"])
+    if key_name == "f":
+        language = "fr"
+        break
+    elif key_name == "e":
+        language = "en"
+        break
+
+# ============================================================
+# PARTICIPANT INFO
+pp_id = collect_text_input(
+    TEXTS[language]["participant_heading"],
+    TEXTS[language]["participant_hint"],
+    max_chars=10,
+    start_key="PARTICIPANT_ID_START",
+)
+print(f"Participant ID: {pp_id}")
+
+# ============================================================
+# GROUP SELECTION
+group = "E"
+print(f"Group: {group}")
+
+# ============================================================
+# CONDITION SELECTION (M = meditation, V = vigilance)
+# No hint shown (per spec).
+condition_task = select_single_key(
+    TEXTS[language]["condition_heading"],
+    valid_keys=["m", "v"],
+    start_key="CONDITION_SELECT_START",
+)
+print(f"Condition: {condition_task}")
+
+# ============================================================
+# RT TIMING SELECTION (before or after M/V conditions)
+rt_timing_choice = select_single_key(
+    TEXTS[language]["rt_timing_heading"],
+    valid_keys=["1", "2"],
+)
+rt_timing = "before" if rt_timing_choice == "1" else "after"
+print(f"RT Timing: {rt_timing}")
+
+# ============================================================
+# STIMULUS FAMILIARIZATION
+show_stimulus_familiarization()
+
+# ============================================================
+# CONDITION ORDER
+cond_1 = condition_task
+cond_2 = "V" if cond_1 == "M" else "M"
+
+show_instruction_space(
+    TEXTS[language]["task_intro_start"],
+    TEXTS[language]["intro_hint"],
+)
+
+# ============================================================
+# SESSION TIMESTAMP (for log filenames)
+session_dt = now_str()
+
+# ============================================================
+# INITIAL BASELINE STATE (5 minutes at the very start)
+show_baseline_state()
+
+show_instruction_space(
+    TEXTS[language]["pheno_questions_intro_induction"],
+    TEXTS[language]["intro_hint"],
+)
+
+responses, question_texts = ask_phenomenology_questions_after_induction()
+save_phenomenology_responses("baseline_initial", responses, question_texts)
+
+# ============================================================
+# MAIN LOOP
+
+def show_condition_transition_pause():
+    """Shown once, right after Condition 1 ends, transitioning into
+    Condition 2."""
+    show_instruction_space(
+        TEXTS[language]["pause_condition_1"],
+        TEXTS[language]["pause_entre_condition_1_hint"],
+        start_key="TRANSITION_START", end_key="TRANSITION_END",
+    )
+
+def show_pre_rt_pause():
+    """Shown once, right after Condition 2 ends, transitioning into the
+    RT block."""
+    show_instruction_space(
+        TEXTS[language]["pause_condition_2"],
+        TEXTS[language]["pause_entre_condition_2_hint"],
+        start_key="TRANSITION_START", end_key="TRANSITION_END",
+    )
+
+
+def run_condition_task(cond):
+    global condition_task, faf_task
+
+    condition_task = cond
+    print(f"\n=== Starting condition {condition_task} ===")
+
+    faf_task = FAFDetectionTask() if condition_task == "V" else None
+    all_blocks = build_experiment()
+
+    # Determine the correct instruction key based on group and condition.
+    instruction_key = f"consigne_{group}_{condition_task}"
+
+    consigne_start_key = "CONSIGNE_V_START" if condition_task == "V" else "CONSIGNE_M_START"
+    consigne_end_key = "CONSIGNE_V_END" if condition_task == "V" else "CONSIGNE_M_END"
+
+    show_instruction_space(
+        TEXTS[language][instruction_key], "",
+        start_key=consigne_start_key, end_key=consigne_end_key,
+    )
+
+    # Condition-specific preparation
+    if condition_task == "M":
+        # M condition: prepare meditation → long fixation (8 min) → ready to start
+        show_instruction_space(
+            TEXTS[language]["meditation_prepare"],
+            TEXTS[language]["meditation_hint"],
+            start_key="MEDITATION_1_START", end_key="MEDITATION_1_END",
+        )
+
+        # Gong sounds at the start of fixation
+        GONG.play()
+
+        # Meditation preparation period (8 min): silent fixation with meditation audio
+        show_baseline_with_audio(MEDITATION_AUDIO, DURATION_INDUCTION_MEDITATION, send_markers=True,
+                                 start_key="INDUCTION_MEDITATION_START", end_key="INDUCTION_MEDITATION_END")
+
+        # Gong sounds at the end of fixation (before stimuli begin)
+        GONG.play()
+
+        show_instruction_space(
+            TEXTS[language]["pheno_questions_intro_induction"],
+            TEXTS[language]["intro_hint"],
+        )
+
+        responses, question_texts = ask_phenomenology_questions_after_induction()
+        save_phenomenology_responses("after_induction_M", responses, question_texts)
+
+        show_text_timed(TEXTS[language]["after_pheno_M"], seconds=5.0, height=TEXT_HEIGHT, wrap=TEXT_WRAP)
+
+        show_text_timed(TEXTS[language]["meditation_start_stimuli"], seconds=5.0, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+                         start_key="MEDITATION_2_START", end_key="MEDITATION_2_END")
+
+    else:  # V condition
+        # V condition: prepare vigilance → long fixation (8 min) → ready to start
+        msg_key = "vigilance_prepare"
+        show_instruction_space(
+            TEXTS[language][msg_key],
+            TEXTS[language]["vigilance_prepare_hint"],
+            start_key="VIGILANCE_1_START", end_key="VIGILANCE_1_END",
+        )
+
+        # Baseline induction instruction (8 min)
+        show_instruction_space(
+            TEXTS[language]["baseline_induction_instruction"].format(duration="8 minutes"),
+            TEXTS[language]["intro_hint"],
+        )
+
+        # Vigilance preparation period (8 min): fixation cross + random near/far sounds
+        show_vigilance_induction_with_sounds(DURATION_INDUCTION_VIGILANCE, send_markers=True,
+                     start_key="INDUCTION_VIGILANCE_START", end_key="INDUCTION_VIGILANCE_END")
+
+        show_instruction_space(
+            TEXTS[language]["pheno_questions_intro_induction"],
+            TEXTS[language]["intro_hint"],
+        )
+
+        responses, question_texts = ask_phenomenology_questions_after_induction()
+        save_phenomenology_responses("after_induction_V", responses, question_texts)
+
+        show_text_timed(TEXTS[language]["after_pheno_V"], seconds=5.0, height=TEXT_HEIGHT, wrap=TEXT_WRAP)
+
+        show_text_timed(TEXTS[language]["vigilance_start_stimuli"], seconds=5.0, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
+                         start_key="VIGILANCE_2_START", end_key="VIGILANCE_2_END")
+
+    send_event("CONDITION_START", send_lsl=True, send_ttl=False)
+
+    for block_idx, block in enumerate(all_blocks):
+        print(f"\nStart block {block_idx + 1}/{NUM_BLOCKS_PPS}")
+
+        # For V condition only: vigilance prompt before each block
+        if condition_task == "V":
+            show_vigilance_prompt()
+
+        show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
+
+        send_event("BLOCK_START", send_lsl=True, send_ttl=False)
+        block_t0 = clock.getTime()
+
+        counts = {k: 0 for k in PPS_CONDITIONS}
+
+        if condition_task == "V":
+            faf_task.start()
+
+        for trial_idx, cond_trial in enumerate(block):
+            counts[cond_trial] += 1
+            run_trial(
+                condition_trial=cond_trial,
+                block_idx=block_idx,
+                trial_idx=trial_idx,
+                faf_task=faf_task if condition_task == "V" else None
+            )
+
+        if condition_task == "V":
+            faf_task.stop()
+
+        # Gong at block end (M condition)
+        if condition_task == "M":
+            GONG.play()
+
+        block_t1 = clock.getTime()
+        block_duration = block_t1 - block_t0
+        trial_sequence_str = ",".join(block)
+
+        send_event("BLOCK_END", send_lsl=True, send_ttl=False)
+
+        row = {
+            "participant_num": pp_id,
+            "language": language,
+            "group": group,
+            "datetime": session_dt,
+            "condition_task": condition_task,
+            "block": block_idx + 1,
+            "response_strawberries": "",
+            "real_strawberries": "",
+            "error": "",
+            "total_fruits": "",
+            "trial_sequence": trial_sequence_str,
+            "n_T": counts["T"],
+            "n_AN": counts["AN"],
+            "n_AF": counts["AF"],
+            "n_ANT": counts["ANT"],
+            "n_AFT": counts["AFT"],
+            "block_duration_sec": round(block_duration, 3),
+        }
+
+        # Sequence after each block's trials:
+        # end-of-block screen -> (if V) strawberry question + feedback ->
+        #  phenomenology question -> after every block, including the
+        # last. The after_block message + closing fixation, however, ONLY
+        # run between blocks (not after the last block of the condition -
+        # the condition ends there and transitions straight to the
+        # pause_condition_1/2 screen instead).
+        show_end_of_block_screen(block_idx)
+
+        if condition_task == "V":
+            stats = faf_task.get_stats()
+            show_faf_feedback(stats)
+
+        show_instruction_space(
+            TEXTS[language]["pheno_questions_intro_bloc"],
+            TEXTS[language]["intro_hint"],
+        )
+
+        responses, question_texts = ask_phenomenology_questions_after_block(block_idx)
+        block_id = f"blocpps{block_idx + 1}{condition_task}"
+        response_keys = ["success_rating", "nom_recognition", "nom_confidence", "near_far_difference",
+                        "boundary_experience", "center_of_consciousness", "sounds_location", "sound_observer_separation"]
+        save_phenomenology_responses(block_id, responses, question_texts, response_keys)
+
+        block_log_rows.append(row)
+        save_logs_now()
+
+        if block_idx < NUM_BLOCKS_PPS - 1:
+            show_after_block(condition_task)
+            if condition_task == "M":
+                core.wait(2.0)
+                GONG.play()
+            show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
+
+    send_event("CONDITION_END", send_lsl=True, send_ttl=False)
+    save_logs_now()
+
+
+NUM_RT_BLOCKS = 3  # 3 blocks x 55 trials = 165 total, 60 ANT + 60 AFT
+
+def build_rt_training_block():
+    """Build RT training block: 3T + 3AFT + 3ANT + 2AN + 1AF = 12 trials."""
+    trials = []
+    trials.extend(["T"] * 3)
+    trials.extend(["AFT"] * 3)
+    trials.extend(["ANT"] * 3)
+    trials.extend(["AN"] * 2)
+    trials.extend(["AF"] * 1)
+    random.shuffle(trials)
+    return trials
+
+def run_rt_training_trial(condition_trial, trial_idx):
+    """Run one RT training trial with tactile feedback."""
+    audio_present, tactile_present, audio_side = describe_trial(condition_trial)
+    stim_onset = clock.getTime()
+
+    response_detected = False
+
+    if condition_trial == "T":
+        send_event(
+            condition_trial,
+            send_lsl=True,
+            send_ttl=True,
+            ttl_code=TTL_BYTE
+        )
+
+    elif condition_trial in ["AN", "AF"]:
+        send_event(condition_trial, send_lsl=True, send_ttl=False)
+        if condition_trial == "AN":
+            play_sound_obj(NOISE_RIGHT)
+        elif condition_trial == "AF":
+            play_sound_obj(NOISE_LEFT)
+
+    elif condition_trial in ["ANT", "AFT"]:
+        audio_code = "AN" if condition_trial == "ANT" else "AF"
+        sound_to_play = NOISE_RIGHT if condition_trial == "ANT" else NOISE_LEFT
+        sound_to_play.stop()
+
+        send_arduino_ttl()
+        send_lsl_marker(TRIGGER_CODES["T"])
+
+        send_lsl_marker(TRIGGER_CODES[audio_code])
+        sound_to_play.play()
+
+    stim_offset = stim_onset + DURATION_AUDIO
+    frame_loop_until(stim_offset)
+    stop_all_sounds()
+
+    send_event(condition_trial + "_OFF", send_lsl=True, send_ttl=False)
+
+    clear_keyboard()
+    response_window_end = stim_offset + 1.5
+
+    while clock.getTime() < response_window_end:
+        check_escape()
+        draw_fixation_only()
+        win.flip()
+
+        if not response_detected:
+            keys = get_keys(["space"])
+            if any(k.name == "space" for k in keys):
+                response_time = clock.getTime() - stim_onset
+                send_lsl_marker(TRIGGER_CODES["RT_RESPONSE"])
+                response_detected = True
+
+    if tactile_present:
+        if response_detected:
+            feedback_txt = TEXTS[language]["rt_feedback_good"]
+            feedback_color = "green"
+        else:
+            feedback_txt = TEXTS[language]["rt_feedback_click"]
+            feedback_color = "red"
+
+        clear_keyboard()
+        t_end = core.getTime() + 1.0
+        while core.getTime() < t_end:
+            check_escape()
+            draw_text(feedback_txt, height=TEXT_HEIGHT, wrap=TEXT_WRAP, color=feedback_color)
+            win.flip()
+
+    isi = random.choice(ISI_VALUES_PPS)
+    trial_end = response_window_end + isi
+    frame_loop_until(trial_end)
+
+def run_rt_training_block():
+    """Run RT training block with 18 trials and tactile feedback."""
+    show_text_timed(
+        TEXTS[language]["rt_training_intro"],
+        seconds=2.0,
+        height=TEXT_HEIGHT,
+        wrap=TEXT_WRAP,
+    )
+
+    show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
+
+    training_block = build_rt_training_block()
+    print(f"RT training block: running {len(training_block)} trials")
+
+    for trial_idx, cond_trial in enumerate(training_block):
+        run_rt_training_trial(condition_trial=cond_trial, trial_idx=trial_idx)
+
+def run_rt_block_task():
+    """RT block: always runs last, after both M and V condition blocks and
+    the pre-RT pause. Runs RT training block first, then NUM_RT_BLOCKS
+    sub-blocks of build_rt_block() trials each."""
+    global rt_log_rows, rt_log_path
+
+    # Reset logs for RT
+    rt_log_rows = []
+    rt_log_path = make_rt_log_filename(pp_id, group)
+    print("\n=== Starting RT block ===")
+    print("RT log:", rt_log_path)
+
+    show_instruction_space(
+        TEXTS[language]["rt_block_intro"],
+        "",
+    )
+
+    run_rt_training_block()
+
+    send_event("RT_BLOCK_START", send_lsl=True, send_ttl=False)
+    show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
+
+    for rt_block_idx in range(NUM_RT_BLOCKS):
+        rt_block = build_rt_block()
+        print(f"RT sub-block {rt_block_idx + 1}/{NUM_RT_BLOCKS}: running {len(rt_block)} trials")
+
+        for trial_idx, cond_trial in enumerate(rt_block):
+            run_rt_trial(condition_trial=cond_trial, trial_idx=trial_idx, block_idx=rt_block_idx)
+
+        show_instruction_space(
+            TEXTS[language]["pheno_questions_intro_bloc"],
+            TEXTS[language]["intro_hint"],
+        )
+
+        responses, question_texts = ask_phenomenology_questions_after_block(rt_block_idx)
+        block_id = f"blocppsRT{rt_block_idx + 1}"
+        response_keys = ["success_rating", "nom_recognition", "nom_confidence", "near_far_difference",
+                        "boundary_experience", "center_of_consciousness", "sounds_location", "sound_observer_separation"]
+        save_phenomenology_responses(block_id, responses, question_texts, response_keys)
+
+        is_last = rt_block_idx == NUM_RT_BLOCKS - 1
+        block_num = rt_block_idx + 1
+        if is_last:
+            msg = TEXTS[language]["rt_block_end"].format(block_num, NUM_RT_BLOCKS)
+        else:
+            msg = TEXTS[language]["rt_between_blocks"].format(block_num, NUM_RT_BLOCKS)
+
+        show_text_timed(
+            msg,
+            seconds=DURATION_END_BLOCK,
+            height=TEXT_HEIGHT,
+            wrap=TEXT_WRAP,
+        )
+
+        if not is_last:
+            show_text_timed(
+                TEXTS[language]["after_block_rt"],
+                seconds=DURATION_AFTER_BLOCK,
+                height=TEXT_HEIGHT,
+                wrap=TEXT_WRAP,
+            )
+            show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
+
+        save_logs_now()
+
+    send_event("RT_BLOCK_END", send_lsl=True, send_ttl=False)
+    save_logs_now()
+
+try:
+    # Initialize session logs (used for both M and V conditions)
+    block_log_rows = []
+    trial_log_rows = []
+    pheno_log_rows = []
+    block_log_path = make_block_log_filename(pp_id, group)
+    trial_log_path = make_trial_log_filename(pp_id, group)
+    pheno_log_path = make_pheno_log_filename(pp_id, group)
+    print("\n=== Session logs ===")
+    print("Block log:", block_log_path)
+    print("Trial log:", trial_log_path)
+    print("Pheno log:", pheno_log_path)
+
+    # Condition 1 : chosen by experimenter
+    cond_1 = condition_task
+    cond_2 = "V" if cond_1 == "M" else "M"
+
+    # Resting state is now shown once per condition, inside run_condition_task
+    # (see show_resting_state), not once globally here.
+
+    if rt_timing == "before":
+        # RT block runs FIRST, before M and V conditions
+        run_rt_block_task()
+
+        # Short break before the first M/V condition
+        show_condition_transition_pause()
+
+        run_condition_task(cond_1)
+
+        # Short break between the two M/V condition blocks
+        show_condition_transition_pause()
+
+        run_condition_task(cond_2)
+
+    else:
+        # RT block runs LAST, after both M and V conditions (default)
+        run_condition_task(cond_1)
+
+        # Short break between the two M/V condition blocks
+        show_condition_transition_pause()
+
+        run_condition_task(cond_2)
+
+        # Short break before the final RT block
+        show_pre_rt_pause()
+
+        # RT block runs last: participants are already familiar with
+        # the stimuli (familiarization + both M/V blocks), so no separate
+        # practice/training phase is needed here.
+        run_rt_block_task()
+
+finally:
+    save_logs_now()
+
+# ============================================================
+# END SCREEN
+send_event("END_SCREEN_START", send_lsl=True, send_ttl=False)
+draw_text(TEXTS[language]["end"], height=52, wrap=TEXT_WRAP)
+win.flip()
+core.wait(DURATION_END)
+send_event("END_SCREEN_END", send_lsl=True, send_ttl=False)
+
+print("\nExperiment finished.")
+win.close()
+core.quit()
