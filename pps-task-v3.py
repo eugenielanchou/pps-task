@@ -85,8 +85,9 @@ DURATION_END = 3.0            # final "thank you" screen, auto-timed
 # --- For questions AFTER baseline/induction (vertical style) ---
 PHENO_V_FONT_OPTION = 36
 PHENO_V_FONT_LABEL = 32
+PHENO_V_FONT_TIME_HALF = 28
 PHENO_V_SCALE_X = -520
-PHENO_V_SCALE_LABEL_OFFSET_X = 720
+PHENO_V_SCALE_LABEL_OFFSET_X = 500
 PHENO_V_SCALE_LABEL_WRAP = 1300
 PHENO_V_SCALE_SPACING = 50
 PHENO_V_FIRST_OPTION_Y = 140
@@ -97,7 +98,7 @@ PHENO_V_BOX_LINE_WIDTH = 2
 # --- For questions AFTER PPS blocks (pheno_bloc style) ---
 # Bloc-specific layout differences (reuses V constants where identical)
 PHENO_BLOC_FONT_QUESTION = 48
-PHENO_BLOC_FONT_TIME_HALF = 36
+PHENO_BLOC_FONT_TIME_HALF = 28
 PHENO_BLOC_POS_Y_QUESTION = 300
 PHENO_BLOC_POS_Y_TIME_HALF = 180
 PHENO_BLOC_V_SCALE_TOP_FIXED_Y = 90
@@ -121,70 +122,47 @@ TARGET_RMS = 0.08
 # ============================================================
 # TRIGGER CODES FOR LSL
 TRIGGER_CODES = {
-    "T": 1,
-    "AN": 2,
-    "AF": 3,
-    "ANT": 4,
-    "AFT": 5,
-    "T_OFF": 11,
-    "AN_OFF": 12,
-    "AF_OFF": 13,
-    "ANT_OFF": 14,
-    "AFT_OFF": 15,
-    "BLOCK_START": 99,
-    "BLOCK_END": 98,
-    "EXP_END": 96,  # whole-session end marker (fired on normal completion via safe_quit-style abort path, or use CONDITION_END for per-condition end)
-    "BASELINE_STATE_START": 95,
-    "BASELINE_STATE_END": 94,
-    "BASELINE_CONDITION_START": 93,
-    "BASELINE_CONDITION_END": 92,
+    # Stimuli (3 types only)
+    "AN": 1,           # Audio Near
+    "AF": 2,           # Audio Far
+    "T": 3,            # Tactile
+    "AN_OFF": 11,
+    "AF_OFF": 12,
+    "T_OFF": 13,
 
-    # Instruction screens
-    "LANG_SELECT_START": 100,
-    "PARTICIPANT_ID_START": 104,
-    "CONDITION_SELECT_START": 106,
-    "RESTING_STATE_INSTR_START": 108,
-    "RESTING_STATE_INSTR_END": 109,
-    "TASK_START_MSG_START": 110,
-    "TASK_START_MSG_END": 111,
-    "CONSIGNE_M_START": 112,
-    "CONSIGNE_M_END": 113,
-    "CONSIGNE_V_START": 114,
-    "CONSIGNE_V_END": 115,
-    "BLOCK_BREAK_START": 116,
-    "BLOCK_BREAK_END": 117,
-    "IPAD_PHENO_START": 118,
-    "IPAD_PHENO_END": 119,
-    "FEEDBACK_START": 122,
-    "FEEDBACK_END": 123,
-    "TRANSITION_START": 124,
-    "TRANSITION_END": 125,
-    "END_SCREEN_START": 126,
-    "END_SCREEN_END": 127,
-    "STRAWBERRY_QUESTION_START": 128,
-    "STRAWBERRY_QUESTION_END": 129,
-    "STRAWBERRY_DISPLAY": 130,
-    "OTHER_FRUIT_DISPLAY": 134,
-    "RT_BLOCK_START": 131,
-    "RT_BLOCK_END": 132,
-    "RT_RESPONSE": 133,
-    "MEDITATION_CLICK": 140,
+    # Baseline (7 min initial)
+    "BASELINE_START": 20,
+    "BASELINE_END": 21,
 
-    "CONDITION_START": 141,
-    "CONDITION_END": 142,
+    # Induction periods (8 min)
+    "INDUCTION_M_START": 30,
+    "INDUCTION_M_END": 31,
+    "INDUCTION_V_START": 32,
+    "INDUCTION_V_END": 33,
 
-    "MEDITATION_1_START": 143,
-    "MEDITATION_1_END": 144,
-    "MEDITATION_2_START": 145,
-    "MEDITATION_2_END": 146,
-    "VIGILANCE_1_START": 147,
-    "VIGILANCE_1_END": 148,
-    "AFTER_BLOCK_START": 149,
-    "AFTER_BLOCK_END": 150,
-    "INDUCTION_MEDITATION_START": 151,
-    "INDUCTION_MEDITATION_END": 152,
-    "INDUCTION_VIGILANCE_START": 153,
-    "INDUCTION_VIGILANCE_END": 154,
+    # Consignes (all instructions)
+    "CONSIGNE_START": 40,
+    "CONSIGNE_END": 41,
+
+    # Blocks
+    "BLOCK_START": 50,
+    "BLOCK_END": 51,
+    "CONDITION_START": 52,
+    "CONDITION_END": 53,
+
+    # RT block
+    "RT_BLOCK_START": 60,
+    "RT_BLOCK_END": 61,
+
+    # Spacebar responses
+    "SPACEBAR_V": 70,      # Spacebar press in Vigilance condition
+    "SPACEBAR_RT": 71,     # Spacebar press in RT block
+
+    # Phenomenology
+    "PHENO_RESPONSE": 80,
+
+    # Session end
+    "EXP_END": 99,
 }
 
 # ============================================================
@@ -356,16 +334,16 @@ TRIAL_FIELDNAMES = [
     "group", "participant_num", "datetime", "condition_task",
     "block", "trial_index", "condition_trial",
     "isi_sec", "stim_onset_clock", "stim_offset_clock", "trigger_code", "trigger_code_offset",
-    "lsl_sent", "ttl_sent", "lsl_time", "ttl_on_time", "ttl_off_time",
-    "audio_play_call_time",
+    "lsl_sent", "ttl_sent", "lsl_time", "tactile_lsl_time", "ttl_on_time", "ttl_off_time",
+    "audio_play_call_time", "audio_side",
 ]
 
 RT_TRIAL_FIELDNAMES = [
     "group", "participant_num", "datetime", "condition_task",
     "block", "trial_index", "condition_trial",
     "isi_sec", "stim_onset_clock", "stim_offset_clock", "trigger_code", "trigger_code_offset",
-    "lsl_sent", "ttl_sent", "lsl_time", "ttl_on_time", "ttl_off_time",
-    "audio_play_call_time", "response_type",
+    "lsl_sent", "ttl_sent", "lsl_time", "tactile_lsl_time", "ttl_on_time", "ttl_off_time",
+    "audio_play_call_time", "audio_side", "response_type",
     "reaction_time_sec", "response_absolute_clock", "response_lsl_time",
 ]
 
@@ -879,13 +857,13 @@ def show_baseline_with_audio(audio_obj, seconds, send_markers=False, start_key="
         send_event(end_key, send_lsl=True, send_ttl=False)
 
 def show_baseline_state():
-    """Initial baseline at the start of the experiment (5 minutes).
+    """Initial baseline at the start of the experiment (7 minutes).
     Shown once, before any conditions start."""
     show_baseline(
         DURATION_BASELINE_STATE,
         send_markers=True,
-        start_key="BASELINE_STATE_START",
-        end_key="BASELINE_STATE_END",
+        start_key="BASELINE_START",
+        end_key="BASELINE_END",
     )
 
 def show_vigilance_induction_with_sounds(duration, send_markers=False, start_key=None, end_key=None):
@@ -921,28 +899,20 @@ def show_resting_state():
     show_text_timed(
         TEXTS[language]["resting_state_heading"], seconds=DURATION_RESTING_STATE_MSG,
         height=TEXT_HEIGHT, wrap=TEXT_WRAP,
-        start_key="RESTING_STATE_INSTR_START", end_key="RESTING_STATE_INSTR_END",
     )
     show_instruction_space(
         TEXTS[language]["resting_state_fixation"],
         TEXTS[language]["intro_hint"],
     )
-    show_baseline(
-        DURATION_BASELINE_CONDITION,
-        send_markers=True,
-        start_key="RESTING_STATE_START",
-        end_key="RESTING_STATE_END",
-    )
+    show_baseline(DURATION_BASELINE_CONDITION)
 
 def show_end_of_block_screen(block_idx):
     txt = TEXTS[language]["end_block"].format(block_idx + 1, NUM_BLOCKS_PPS)
-    show_text_timed(txt, seconds=DURATION_END_BLOCK, height=56, wrap=TEXT_WRAP,
-                     start_key="BLOCK_BREAK_START", end_key="BLOCK_BREAK_END")
+    show_text_timed(txt, seconds=DURATION_END_BLOCK, height=56, wrap=TEXT_WRAP)
 
 def show_after_block(cond):
     key_name = "after_block_V" if cond == "V" else "after_block_M"
-    show_text_timed(TEXTS[language][key_name], seconds=DURATION_AFTER_BLOCK, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
-                     start_key="AFTER_BLOCK_START", end_key="AFTER_BLOCK_END")
+    show_text_timed(TEXTS[language][key_name], seconds=DURATION_AFTER_BLOCK, height=TEXT_HEIGHT, wrap=TEXT_WRAP)
 
 # ============================================================
 # PHENOMENOLOGY QUESTIONS AFTER INDUCTION (vertical style)
@@ -956,7 +926,7 @@ def draw_question_block_pheno(question_text, time_half=None):
     if time_half:
         time_labels = {"T1": "Beginning", "T2": "Middle", "T3": "End"}
         label = time_labels.get(time_half, time_half)
-        draw_text(label, height=40, wrap=TEXT_WRAP,
+        draw_text(label, height=PHENO_V_FONT_TIME_HALF, wrap=TEXT_WRAP,
                    pos=(0, 330), color="yellow", bold=True)
 
 def ask_scale_vertical_pheno(question_text, scale_options, scale_labels, start_idx=1, time_half=None):
@@ -991,74 +961,70 @@ def ask_scale_vertical_pheno(question_text, scale_options, scale_labels, start_i
             elif k.name == "down" and selected_idx < len(scale_options) - 1:
                 selected_idx += 1
             elif k.name == "space":
+                send_event("PHENO_RESPONSE", send_lsl=True, send_ttl=False)
                 return scale_options[selected_idx]
 
 def ask_phenomenology_questions_after_induction():
     time_moments = ["T1", "T2", "T3"]
     responses = {}
 
-    # Q1: Eyes open percentage 
-    q1_txt = "Estimate the percentage of time spent eyes open."
+    # Q1: Follow instruction successfully
+    q1_txt = "How successfully did you follow the instruction?"
     q1_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-    q1_labels = ["I do not recall anything about this", "0% of the time", "", "", "", "", "50% of the time", "", "", "", "", "100% of the time"]
+    q1_labels = ["I do not recall anything about this", "On average, unsuccessfully", "", "", "", "", " On average, somewhat successfully", "", "", "", "", "On average, very successfully"]
 
-    # Q2: Follow instruction successfully
-    q2_txt = "How successfully did you follow the instruction?"
+    # Q2: Effort
+    q2_txt = "How much effort did you feel during the session?"
     q2_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-    q2_labels = ["I do not recall anything about this", "On average, unsuccessfully", "", "", "", "", " On average, somewhat successfully", "", "", "", "", "On average, very successfully"]
+    q2_labels = ["I do not recall anything about this", "Very effortful, was hard work", "", "", "", "", "", "", "", "", "", "Utterly effortless; felt the session was spontaneous"]
 
-    # Q3: Effort 
-    q3_txt = "How much effort did you feel during the session?"
+    # Q3: Energy/arousal
+    q3_txt = "What was your level of energy or arousal during the session?"
     q3_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-    q3_labels = ["I do not recall anything about this", "Very effortful, was hard work", "", "", "", "", "", "", "", "", "", "Utterly effortless; felt the session was spontaneous"]
+    q3_labels = ["I do not recall anything about this", "Very low energy (on the verge of falling asleep, or actually asleep)", "", "", "", "", "Average level of energy or arousal", "", "", "", "", "Very high energy or arousal (the high energy that comes from a strong cup of tea)"]
 
-    # Q4: Energy/arousal 
-    q4_txt = "What was your level of energy or arousal during the session?"
+    # Q4: Monitoring mind movements
+    q4_txt = "How much were you monitoring the movements and processes of the mind?"
     q4_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-    q4_labels = ["I do not recall anything about this", "Very low energy (on the verge of falling asleep, or actually asleep)", "", "", "", "", "Average level of energy or arousal", "", "", "", "", "Very high energy or arousal (the high energy that comes from a strong cup of coffee or tea)"]
+    q4_labels = ["I do not recall anything about this", "Never (0%)", "", "", "", "", "Sometimes (50%)", "", "", "", "", "Always (100%)"]
 
-    # Q5: Monitoring mind movements 
-    q5_txt = "How much were you monitoring the movements and processes of the mind?"
+    # Q5: Field of awareness
+    q5_txt = "Was your field of awareness open, extended, or spacious? Or rather focused and narrow?"
     q5_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-    q5_labels = ["I do not recall anything about this", "Never (0%)", "", "", "", "", "Sometimes (50%)", "", "", "", "", "Always (100%)"]
+    q5_labels = ["I do not recall anything about this", "Usually extremely open, extended, spacious", "", "", "", "", "Somewhat open, extended, spacious", "", "", "", "", "Usually narrow"]
 
-    # Q6: Field of awareness 
-    q6_txt = "Was your field of awareness open, extended, or spacious? Or rather focused and narrow?"
+    # Q6: Thoughts appearing real
+    q6_txt = "To what degree did thoughts appear to be real as opposed to appearing just as thoughts ? (ex: the thought of a apple can appear to be a real apple, or simply like a thought)."
     q6_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-    q6_labels = ["I do not recall anything about this", "Usually extremely open, extended, spacious", "", "", "", "", "Somewhat open, extended, spacious", "", "", "", "", "Usually narrow"]
+    q6_labels = ["I do not recall anything about this", "Mostly appearing just as thoughts", "", "", "", "", "Sometimes real, sometimes just as thoughts", "", "", "", "", "Mostly appearing to be real"]
 
-    # Q7: Thoughts appearing real 
-    q7_txt = "To what degree did thoughts appear to be real as opposed to appearing just as thoughts ? (ex: the thought of a apple can appear to be a real apple, or simply like a thought)."
+    # Q7: Unrelated thoughts frequency
+    q7_txt = "How frequently did you have thoughts unrelated to your meditation (inner speech, mental imagery, memories)?"
     q7_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-    q7_labels = ["I do not recall anything about this", "Mostly appearing just as thoughts", "", "", "", "", "Sometimes real, sometimes just as thoughts", "", "", "", "", "Mostly appearing to be real"]
+    q7_labels = ["I do not recall anything about this", "Never (0%)", "", "", "", "", "Moderately (50%)", "", "", "", "", "All the time (100%)"]
 
-    # Q8: Unrelated thoughts frequency 
-    q8_txt = "How frequently did you have thoughts unrelated to your meditation (inner speech, mental imagery, memories)?"
+    # Q8: Stability vs distraction
+    q8_txt = "During the session, how stable or distracted was your practice?"
     q8_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-    q8_labels = ["I do not recall anything about this", "Never (0%)", "", "", "", "", "Moderately (50%)", "", "", "", "", "All the time (100%)"]
+    q8_labels = ["I do not recall anything about this", "Unstable, always distracted", "", "", "", "", "Mostly stable, sometimes distracted", "", "", "", "", "The state was completely stable, no distraction (or attention capture)"]
 
-    # Q9: Stability vs distraction 
-    q9_txt = "During the session, how stable or distracted was your practice?."
-    q9_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
-    q9_labels = ["I do not recall anything about this", "Unstable, always distracted", "", "", "", "", "Mostly stable, sometimes distracted", "", "", "", "", "The state was completely stable, no distraction (or attention capture)"]
+    # Q9: Nature of Mind recognition
+    q9_txt = "According to your own understanding, did you experience any moments during the session that you would describe as recognizing the Nature of Mind?"
+    q9_options = ["X", "0", "1", "2", "3", "4"]
+    q9_labels = ["I do not recall enough to answer this question.", "No, I did not recognize the Nature of Mind", "Yes, once", "A few times", "Many times", "Most of the time"]
 
-    # Q10: Nature of Mind recognition 
-    q10_txt = "According to your own understanding, did you experience any moments during the session that you would describe as recognizing the Nature of Mind?"
-    q10_options = ["X", "0", "1", "2", "3", "4"]
-    q10_labels = ["I do not recall enough to answer this question.", "No, I did not recognize the Nature of Mind", "Yes, once", "A few times", "Many times", "Most of the time"]
+    # Q10: Confidence in NOM rating
+    q10_txt = "How confident are you about your rating?"
+    q10_options = ["X", "1", "2", "3"]
+    q10_labels = ["I do not recall enough to answer this question.", "Not confident", "A little confident", "Confident"]
 
-    # Q11: Confidence in NOM rating 
-    q11_txt = "How confident are you about your rating?"
+    # Q11: Time experience
+    q11_txt = "How was time most frequently experienced?"
     q11_options = ["X", "1", "2", "3"]
-    q11_labels = ["I do not recall enough to answer this question.", "Not confident", "A little confident", "Confident"]
-
-    # Q12: Time experience 
-    q12_txt = "How was time most frequently experienced?"
-    q12_options = ["X", "1", "2", "3"]
-    q12_labels = ["I do not recall anything about this", "Experience seemed beyond time", "I was in the present moment", "I was lost in the future or the past"]
+    q11_labels = ["I do not recall anything about this", "Experience seemed beyond time", "I was in the present moment", "I was lost in the future or the past"]
 
     question_texts = [
-        q1_txt, q2_txt, q3_txt, q4_txt, q5_txt, q6_txt, q7_txt, q8_txt, q9_txt, q10_txt, q11_txt, q12_txt
+        q1_txt, q2_txt, q3_txt, q4_txt, q5_txt, q6_txt, q7_txt, q8_txt, q9_txt, q10_txt, q11_txt
     ]
 
     for moment in time_moments:
@@ -1100,19 +1066,15 @@ def ask_phenomenology_questions_after_induction():
     for moment in time_moments:
         responses[moment]["q9"] = ask_scale_vertical_pheno(q9_txt, q9_options, q9_labels, 1, time_half=moment)
 
-    # Q10: Ask T1, T2, T3 in sequence
+    # Q10: Confidence only if NOM != 0, X - Ask T1, T2, T3 in sequence
     for moment in time_moments:
-        responses[moment]["q10"] = ask_scale_vertical_pheno(q10_txt, q10_options, q10_labels, 1, time_half=moment)
+        responses[moment]["q10"] = ""
+        if responses[moment]["q9"] not in ["0", "X"]:
+            responses[moment]["q10"] = ask_scale_vertical_pheno(q10_txt, q10_options, q10_labels, 1, time_half=moment)
 
-    # Q11: Confidence only if NOM != 0, X - Ask T1, T2, T3 in sequence
+    # Q11: Ask T1, T2, T3 in sequence
     for moment in time_moments:
-        responses[moment]["q11"] = ""
-        if responses[moment]["q10"] not in ["0", "X"]:
-            responses[moment]["q11"] = ask_scale_vertical_pheno(q11_txt, q11_options, q11_labels, 1, time_half=moment)
-
-    # Q12: Ask T1, T2, T3 in sequence
-    for moment in time_moments:
-        responses[moment]["q12"] = ask_scale_vertical_pheno(q12_txt, q12_options, q12_labels, 1, time_half=moment)
+        responses[moment]["q11"] = ask_scale_vertical_pheno(q11_txt, q11_options, q11_labels, 1, time_half=moment)
 
     return responses, question_texts
 
@@ -1165,6 +1127,7 @@ def ask_scale_vertical_bloc(question_text, scale_options, scale_labels, start_id
             elif k.name == "down" and selected_idx < len(scale_options) - 1:
                 selected_idx += 1
             elif k.name == "space":
+                send_event("PHENO_RESPONSE", send_lsl=True, send_ttl=False)
                 return scale_options[selected_idx]
 
 def ask_success_rating_bloc(question_text, time_half=None):
@@ -1200,6 +1163,7 @@ def ask_success_rating_bloc(question_text, time_half=None):
             elif k.name == "right" and selected_idx < len(scale_options) - 1:
                 selected_idx += 1
             elif k.name == "space":
+                send_event("PHENO_RESPONSE", send_lsl=True, send_ttl=False)
                 return scale_options[selected_idx]
 
 def ask_nom_recognition_bloc(question_text, time_half=None):
@@ -1284,8 +1248,7 @@ def show_faf_feedback(stats):
         rate=stats["detection_rate"],
         rt=stats["mean_rt"]
     )
-    show_text_timed(fb_txt, seconds=DURATION_FEEDBACK, height=56, wrap=TEXT_WRAP,
-                     start_key="FEEDBACK_START", end_key="FEEDBACK_END")
+    show_text_timed(fb_txt, seconds=DURATION_FEEDBACK, height=56, wrap=TEXT_WRAP)
 
 def ask_yes_no_question(question_key="famil_repeat_question"):
     # No hint shown for these questions (per spec).
@@ -1525,8 +1488,7 @@ class FAFDetectionTask:
 clock = core.Clock()
 clock.reset()
 
-def frame_loop_until(t_end, vigilance_task=None, track_meditation_clicks=None, faf_task=None, trial_idx=None, stim_onset=0):
-    button_was_down = False
+def frame_loop_until(t_end, vigilance_task=None, faf_task=None, trial_idx=None, stim_onset=0):
     space_key_pressed_this_trial = False
 
     while True:
@@ -1538,18 +1500,6 @@ def frame_loop_until(t_end, vigilance_task=None, track_meditation_clicks=None, f
 
         draw_fixation_only()
 
-        # Detect meditation clicks (only during meditation condition)
-        if track_meditation_clicks is not None and condition_task == "M":
-            buttons = mouse.getPressed()
-            button_is_down = buttons[0]  # Left mouse button
-
-            # Detect rising edge (click begins)
-            if button_is_down and not button_was_down:
-                click_time = now - stim_onset
-                track_meditation_clicks.append(click_time)
-                send_event("MEDITATION_CLICK", send_lsl=True, send_ttl=False)
-
-            button_was_down = button_is_down
 
         # Detect spacebar presses for FAF detection (only during vigilance condition)
         if faf_task is not None and condition_task == "V" and not space_key_pressed_this_trial:
@@ -1557,7 +1507,7 @@ def frame_loop_until(t_end, vigilance_task=None, track_meditation_clicks=None, f
             if any(k.name == "space" for k in keys):
                 response_time = now - stim_onset
                 faf_task.log_response(trial_idx, response_time)
-                send_event("RT_RESPONSE", send_lsl=True, send_ttl=False)
+                send_event("SPACEBAR_V", send_lsl=True, send_ttl=False)
                 space_key_pressed_this_trial = True
 
         win.flip()
@@ -1707,7 +1657,7 @@ def run_rt_trial(condition_trial, trial_idx, block_idx=0):
             keys = get_keys(["space"])
             if any(k.name == "space" for k in keys):
                 response_time = clock.getTime() - stim_onset
-                response_lsl_time = send_lsl_marker(TRIGGER_CODES["RT_RESPONSE"])
+                response_lsl_time = send_lsl_marker(TRIGGER_CODES["SPACEBAR_RT"])
                 response_detected = True
 
     response_type = "response" if response_detected else "no_response"
@@ -1736,9 +1686,11 @@ def run_rt_trial(condition_trial, trial_idx, block_idx=0):
         "lsl_sent": event_info["lsl_sent"],
         "ttl_sent": event_info["ttl_sent"],
         "lsl_time": event_info["lsl_time"],
+        "tactile_lsl_time": event_info.get("tactile_lsl_time", ""),
         "ttl_on_time": event_info["ttl_on_time"],
         "ttl_off_time": event_info["ttl_off_time"],
         "audio_play_call_time": audio_play_call_time,
+        "audio_side": audio_side,
         "response_type": response_type,
         "reaction_time_sec": round(response_time, 6) if response_time is not None else "",
         "response_absolute_clock": round(stim_onset + response_time, 6) if response_time is not None else "",
@@ -1852,14 +1804,15 @@ def run_trial(condition_trial, block_idx, trial_idx, faf_task=None):
         "lsl_sent": event_info["lsl_sent"],
         "ttl_sent": event_info["ttl_sent"],
         "lsl_time": event_info["lsl_time"],
+        "tactile_lsl_time": event_info.get("tactile_lsl_time", ""),
         "ttl_on_time": event_info["ttl_on_time"],
         "ttl_off_time": event_info["ttl_off_time"],
         "audio_play_call_time": audio_play_call_time,
+        "audio_side": audio_side,
     })
 
 # ============================================================
 # LANGUAGE SELECTION
-send_event("LANG_SELECT_START", send_lsl=True, send_ttl=False)
 while True:
     check_escape()
     draw_text(TEXTS["fr"]["lang_select"], height=TEXT_HEIGHT, wrap=TEXT_WRAP)
@@ -1879,7 +1832,6 @@ pp_id = collect_text_input(
     TEXTS[language]["participant_heading"],
     TEXTS[language]["participant_hint"],
     max_chars=10,
-    start_key="PARTICIPANT_ID_START",
 )
 print(f"Participant ID: {pp_id}")
 
@@ -1894,7 +1846,6 @@ print(f"Group: {group}")
 condition_task = select_single_key(
     TEXTS[language]["condition_heading"],
     valid_keys=["m", "v"],
-    start_key="CONDITION_SELECT_START",
 )
 print(f"Condition: {condition_task}")
 
@@ -1953,7 +1904,6 @@ def show_condition_transition_pause():
     show_instruction_space(
         TEXTS[language]["pause_condition_1"],
         TEXTS[language]["pause_entre_condition_1_hint"],
-        start_key="TRANSITION_START", end_key="TRANSITION_END",
     )
 
 def show_pre_rt_pause():
@@ -1962,7 +1912,6 @@ def show_pre_rt_pause():
     show_instruction_space(
         TEXTS[language]["pause_condition_2"],
         TEXTS[language]["pause_entre_condition_2_hint"],
-        start_key="TRANSITION_START", end_key="TRANSITION_END",
     )
 
 
@@ -1981,7 +1930,7 @@ def run_condition_task(cond):
         show_instruction_space(
             TEXTS[language]["meditation_prepare"],
             TEXTS[language]["meditation_hint"],
-            start_key="MEDITATION_1_START", end_key="MEDITATION_1_END",
+            start_key="CONSIGNE_START", end_key="CONSIGNE_END",
         )
 
         # Gong sounds at the start of fixation
@@ -1989,7 +1938,7 @@ def run_condition_task(cond):
 
         # Meditation preparation period (8 min): silent fixation with meditation audio
         show_baseline_with_audio(MEDITATION_AUDIO, DURATION_INDUCTION_MEDITATION, send_markers=True,
-                                 start_key="INDUCTION_MEDITATION_START", end_key="INDUCTION_MEDITATION_END")
+                                 start_key="INDUCTION_M_START", end_key="INDUCTION_M_END")
 
         # Gong sounds at the end of fixation (before stimuli begin)
         GONG.play()
@@ -2012,12 +1961,12 @@ def run_condition_task(cond):
         show_instruction_space(
             TEXTS[language]["vigilance_prepare"],
             TEXTS[language]["vigilance_hint"],
-            start_key="VIGILANCE_1_START", end_key="VIGILANCE_1_END",
+            start_key="CONSIGNE_START", end_key="CONSIGNE_END",
         )
 
         # Vigilance preparation period (8 min): fixation cross + random near/far sounds
         show_vigilance_induction_with_sounds(DURATION_INDUCTION_VIGILANCE, send_markers=True,
-                     start_key="INDUCTION_VIGILANCE_START", end_key="INDUCTION_VIGILANCE_END")
+                     start_key="INDUCTION_V_START", end_key="INDUCTION_V_END")
 
         show_instruction_space(
             TEXTS[language]["pheno_questions_intro_induction"],
@@ -2037,7 +1986,7 @@ def run_condition_task(cond):
     for block_idx, block in enumerate(all_blocks):
         print(f"\nStart block {block_idx + 1}/{NUM_BLOCKS_PPS}")
 
-        show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
+        show_baseline(FIXATION_BEFORE_BLOCK)
 
         send_event("BLOCK_START", send_lsl=True, send_ttl=False)
         block_t0 = clock.getTime()
@@ -2125,7 +2074,7 @@ def run_condition_task(cond):
             if condition_task == "M":
                 core.wait(2.0)
                 GONG.play()
-            show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
+            show_baseline(FIXATION_BEFORE_BLOCK)
 
     send_event("CONDITION_END", send_lsl=True, send_ttl=False)
     save_logs_now()
@@ -2195,7 +2144,7 @@ def run_rt_training_trial(condition_trial, trial_idx):
             keys = get_keys(["space"])
             if any(k.name == "space" for k in keys):
                 response_time = clock.getTime() - stim_onset
-                send_lsl_marker(TRIGGER_CODES["RT_RESPONSE"])
+                send_lsl_marker(TRIGGER_CODES["SPACEBAR_RT"])
                 response_detected = True
 
     if tactile_present:
@@ -2295,7 +2244,7 @@ def run_rt_block_task():
                 height=TEXT_HEIGHT,
                 wrap=TEXT_WRAP,
             )
-            show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
+            show_baseline(FIXATION_BEFORE_BLOCK)
 
         save_logs_now()
 
@@ -2341,11 +2290,9 @@ finally:
 
 # ============================================================
 # END SCREEN
-send_event("END_SCREEN_START", send_lsl=True, send_ttl=False)
 draw_text(TEXTS[language]["end"], height=52, wrap=TEXT_WRAP)
 win.flip()
 core.wait(DURATION_END)
-send_event("END_SCREEN_END", send_lsl=True, send_ttl=False)
 
 print("\nExperiment finished.")
 win.close()
