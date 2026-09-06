@@ -32,7 +32,7 @@ from psychopy.hardware import keyboard
 # GLOBAL FLAGS
 LSL_AVAILABLE = True
 SERIAL_AVAILABLE = True
-ARDUINO_ENABLED = False
+ARDUINO_ENABLED = True
 
 # GENERAL PATHS
 DATA_DIR = "data"
@@ -43,8 +43,8 @@ AUDIO_DIR = "audio"
 ARDUINO_PORT = "COM5"
 ARDUINO_BAUDRATE = 115200
 TTL_BYTE = 1
-DURATION_TACTILE = 50  # ms - sent to Arduino, firmware clamps any value below 50ms
-INTENSITY = 150
+DURATION_TACTILE = 100  # ms - sent to Arduino, firmware clamps any value below 50ms
+INTENSITY = 250
 
 # ============================================================
 # EXPERIMENT DESIGN
@@ -208,27 +208,29 @@ TEXTS = {
         "famil_tactile": "Vous allez maintenant ressentir la vibration.",
         "famil_tactile_hint": "Appuyez sur la barre d'espace pour la ressentir.",
         "famil_repeat_question": "Souhaitez-vous recommencer ?",
-
-        # ===== TASK DESCRIPTIONS =====
+    
+       # ===== TASK DESCRIPTIONS =====
         "task_intro_start": "L'expérience se déroulera en trois parties, séparées par de courtes pauses.\n\nLes sons et la vibration seront les mêmes dans chaque partie. Seul l'état dans lequel vous devrez être changera.\n\nVous serez invité à répondre à des questions sur l'écran entre chaque phase.\n",
        
         # ===== MEDITATION =====#
         "meditation_prepare": "Nous allons maintenant commencer une pratique de méditation sur la nature de l'esprit. Laissez votre regard se poser sur la croix qui apparaîtra à l'écran et gardez les yeux ouverts.\n\nVous disposerez de 7 minutes pour cette pratique. Un gong marquera le début et la fin de cette période.",
         "meditation_reconnection": "Prenez un moment pour vous reconnecter avec votre pratique de la nature de l'esprit. Essayez de maintenir cet état pendant que les sons et les vibrations sont présentés. La pratique consistera en six courts blocs, avec des questions affichées à l'écran entre les blocs.",
         "meditation_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
-        "consigne_E_M": "Dans cette partie, vous écouterez un enregistrement audio de 8 minutes qui vous guidera vers un état calme. Laissez-vous guider par les instructions.",
 
         # ===== VIGILANCE =====
         "vigilance_prepare": "Nous allons maintenant commencer une tâche de concentration. Concentrez votre attention exclusivement sur les sons qui vont sortir des haut-parleurs, en excluant activement les distractions (pensées, émotions, etc.). \n\n \n\nFixez votre regard sur la croix qui va apparaître au centre de l'écran. Restez vigilant, moment après moment.",
-        "vigilance_prepare_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
-        "consigne_E_V": "Dans cette partie, concentrez votre attention sur les sons. Vous entendrez des sons provenant de deux directions.\n\nAppuyez sur la barre d'espace dès que vous entendez DEUX sons LOINTAINS qui se produisent l'un après l'autre.",
-        
+        "vigilance_reconnection": "Prenez un moment pour retourner au même état de concentration et de vigilance. Continuez à concentrer votre attention exclusivement sur les sons provenant des haut-parleurs, en gardant votre regard sur la croix.\n\nDe plus, appuyez sur la barre d'espace chaque fois que vous entendez deux sons lointains d'affilée.\n\nLa tâche consistera en six courts blocs, avec des questions affichées à l'écran entre les blocs.",
+        "vigilance_hint": "Cliquez sur la barre d'espace quand vous êtes prêt.",
+
         # ===== BASELINE =====
-        "baseline_induction_instruction": "Veuillez rester assis(e) et regarder en direction de la croix, qui apparaîtra au centre de l'écran. Il s'agit d'un état non méditatif. Il est normal de vous laisser absorber et de vous perdre dans vos pensées et vos émotions. Laissez votre esprit vagabonder.\n\n{duration}",
+        "baseline_induction_instruction": "D'abord, veuillez rester assis(e) et regarder la croix qui apparaîtra au centre de l'écran. Il s'agit d'un état non méditatif. Il est normal de vous laisser absorber et de vous perdre dans vos pensées et vos émotions. Laissez votre esprit vagabonder pendant 7 minutes.",
 
         # ===== PHENOMENOLOGY QUESTIONS =====
         "pheno_questions_intro_induction": "Veuillez répondre aux questions suivantes à l'aide des flèches du clavier.\n\nNous vous invitons à vous remémorer la tâche précédente en trois moments successifs : son début, son milieu et sa fin. Répondez séparément à chaque question pour chacun de ces trois moments.",
         "pheno_questions_intro_bloc": "Veuillez répondre aux questions suivantes à l'aide des flèches du clavier.\n\nNous vous invitons à vous remémorer le bloc précédent en deux moments successifs : son début, et sa fin. Répondez séparément à chaque question pour chacun de ces trois moments.",
+        "pheno_time_half_first": "Début (première moitié du bloc)",
+        "pheno_time_half_second": "Fin (deuxième moitié du bloc)",
+        "pheno_respond_for": "Répondez pour",
 
         # ===== FAF DETECTION FEEDBACK (V condition only) =====
         "faf_feedback_title": "Résultats de détection",
@@ -242,6 +244,8 @@ TEXTS = {
         "end_block": "Fin du bloc {}/{}.",
         "after_block_M": "Prenez quelques instants pour vous replacer dans l'état méditatif.\n\nL'expérience reprendra bientôt.",
         "after_block_V": "La même tâche va reprendre.\n\nInstallez-vous confortablement et portez votre attention sur les sons.",
+        "after_pheno_bloc_M": "Prenez un moment pour vous reconnecter avec votre pratique de méditation de la nature de l'esprit.\n\nLes sons et les vibrations vont bientôt commencer.",
+        "after_pheno_bloc_V": "Retournez à un état de concentration et de vigilance, en concentrant votre attention sur les sons. Gardez votre regard sur la croix.\n\nAppuyez sur la barre d'espace chaque fois que vous entendez deux sons lointains d'affilée.",
 
         # ===== BETWEEN CONDITIONS / BEFORE RT =====
         "pause_condition_1": "Fin de la première partie.\n\nPrenez quelques minutes. Vous pouvez bouger et demander de l'eau à l'expérimentateur si besoin.",
@@ -270,7 +274,7 @@ TEXTS = {
         "rt_timing_heading": "RT :",
 
         # ===== FAMILIARIZATION =====
-        "intro_hint": "Press the space bar.",
+        "intro_hint": "Press the space bar to continue.",
         "famil_intro": "During this experiment, you will hear sounds coming from two speakers and feel a slight vibration on your chest.\n\nWe will first familiarize you with these different sensations.",
         "famil_near": "You will now hear the NEAR sound.",
         "famil_far": "You will now hear the FAR sound.",
@@ -281,36 +285,38 @@ TEXTS = {
 
         # ===== TASK DESCRIPTIONS =====
         "task_intro_start": "The experiment will unfold in three parts, separated by short breaks.\n\nThe sounds and vibration will be the same in each part. Only the state you must be in will change.\n\nYou will be asked to answer questions on the screen between each phase.",
+        
+        
+        # ===== BASELINE =====
+        "baseline_induction_instruction": "First, please sit still and gaze at the cross that will appear at the center of the screen. This is a non-meditative state. It is okay to become absorbed in and lost in your thoughts and emotions. Allow your mind to wander for 7 minutes.",
 
 
-        # ===== CONDITION-SPECIFIC INSTRUCTIONS =====
+        # ===== MEDITATION =====
         "meditation_prepare": "We will now begin a meditation practice on the Nature of Mind. Let your gaze rest on the cross that will appear on the screen, and keep your eyes open.\n\nYou will have 7 minutes for this practice. A gong will mark the beginning and the end of this period.",
         "meditation_hint": "Press the space bar when you are ready.",
         "meditation_reconnection": "Please take a moment to reconnect with your Nature of Mind practice. Please try to maintain this state as sounds and vibrations are presented. The practice will consist of six short blocks, with questions displayed on the screen between blocks.",
-        "meditation_start_stimuli": "Sounds and vibration will now arrive. Remain in the meditative state.",
-        "consigne_E_M": "In this part, you will listen to an 8-minute audio recording that will guide you towards a state of calm. Let yourself be guided by the instructions.",
 
         # ===== VIGILANCE =====
         "vigilance_prepare": "We will now begin a concentration task. Focus your attention exclusively on the sounds coming from the speakers, actively excluding distractions (thoughts, emotions, etc.). \n\n \n\nFix your gaze on the cross that will appear at the center of the screen. Stay vigilant, moment after moment.",
-        "vigilance_prepare_hint": "Press the space bar when you are ready.",
-        "baseline_induction_instruction": "Please sit still and gaze towards the cross which will appear at the center of the screen. This is a non-meditative state. It is okay to become absorbed and lost in your thoughts and emotions. Allow your mind to wander.\n\n{duration}",
-        "vigilance_start_stimuli": "Sounds will now arrive. Press the space bar when you hear two far sounds that occur one after the other.",
-        "consigne_E_V": "In this part, focus your attention on the sounds. You will hear sounds from two directions.\n\nPress the space bar as soon as you hear TWO FAR sounds that occur one after the other.",
+        "vigilance_hint": "Press the space bar when you are ready.",
+        "vigilance_reconnection": "Please take a moment to return to the same concentrated and vigilant state. Continue to focus your attention exclusively on the sounds coming from the speakers, while keeping your gaze on the cross.\n\nIn addition, press the space bar whenever you hear two distant sounds in a row. The task will consist of six short blocks, with questions displayed on the screen between blocks.",
 
         # ===== PHENOMENOLOGY QUESTIONS =====
         "pheno_questions_intro_induction": "Please answer the following questions using the arrow keys.\n\nWe invite you to recall the previous task in three successive moments: its beginning, its middle and its end. Answer each question separately for each of these three moments.",
         "pheno_questions_intro_bloc": "Please answer the following questions using the arrow keys.\n\nWe invite you to recall the previous block in two successive moments: its beginning and its end. Answer each question separately for each of these three moments.",
-
-        # ===== PER-BLOCK PROMPTS (Vigilance) =====
-        "vigilance_1": "Fixate on the cross. Sounds will arrive.",
+        "pheno_time_half_first": "Beginning",
+        "pheno_time_half_second": "End",
+        "pheno_respond_for": "Respond for",
 
         # ===== FAF DETECTION FEEDBACK (V condition only) =====
         "faf_feedback_title": "Detection results",
         "faf_feedback_template": "Targets detected: {hits}/{total}\nFalse positives: {fp}\nDetection rate: {rate:.1f}%\nAverage RT: {rt:.3f}s",
 
         # ===== AFTER PHENOMENOLOGY (before PPS stimuli start) =====
-        "after_pheno_M": "Take a moment to reconnect with your practice on the Nature of Mind.\n\nWe ask you to maintain this state to the best of your abilities during the task that is about to start.",
-        "after_pheno_V": "Take a moment to settle back into a focused state.\n\nThe experiment with sounds and vibration will start soon.",
+        "after_pheno_M": "Take a moment to get back into the meditative state.\n\nThe experience with sounds and vibration will start soon.",
+        "after_pheno_V": "Take a moment to get back into the concentrated state.\n\nThe experience with sounds and vibration will start soon.",
+        "after_pheno_bloc_M": "Take a moment to reconnect with your Nature of Mind meditation practice.\n\nThe sounds and vibrations will begin shortly.",
+        "after_pheno_bloc_V": "Return to a concentrated and vigilant state, focusing your attention on the sounds. Keep your gaze on the cross.\n\nPress the space bar whenever you hear two distant sounds in a row.",
 
         # ===== BREAKS & TRANSITIONS (within a condition, per block) =====
         "end_block": "End of block {}/{}.",
@@ -938,9 +944,6 @@ def show_after_block(cond):
     show_text_timed(TEXTS[language][key_name], seconds=DURATION_AFTER_BLOCK, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
                      start_key="AFTER_BLOCK_START", end_key="AFTER_BLOCK_END")
 
-def show_vigilance_prompt():
-    show_text_timed(TEXTS[language]["vigilance_1"], seconds=DURATION_VIGILANCE_1, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
-                     start_key="VIGILANCE_1_START", end_key="VIGILANCE_1_END")
 # ============================================================
 # PHENOMENOLOGY QUESTIONS AFTER INDUCTION (vertical style)
 def draw_selection_box_pheno(pos):
@@ -949,12 +952,12 @@ def draw_selection_box_pheno(pos):
     rect.draw()
 
 def draw_question_block_pheno(question_text, time_half=None):
-    draw_text(question_text, height=56, wrap=TEXT_WRAP, pos=(0, 420), color="white")
+    draw_text(question_text, height=52, wrap=TEXT_WRAP, pos=(0, 420), color="white")
     if time_half:
         time_labels = {"T1": "Beginning", "T2": "Middle", "T3": "End"}
         label = time_labels.get(time_half, time_half)
-        draw_text(label, height=44, wrap=TEXT_WRAP,
-                   pos=(0, 220), color="yellow", bold=True)
+        draw_text(label, height=40, wrap=TEXT_WRAP,
+                   pos=(0, 330), color="yellow", bold=True)
 
 def ask_scale_vertical_pheno(question_text, scale_options, scale_labels, start_idx=1, time_half=None):
     clear_keyboard()
@@ -994,62 +997,62 @@ def ask_phenomenology_questions_after_induction():
     time_moments = ["T1", "T2", "T3"]
     responses = {}
 
-    # Q1: Eyes open percentage (0-10)
-    q1_txt = "Estimate the percentage of time spent eyes spent."
+    # Q1: Eyes open percentage 
+    q1_txt = "Estimate the percentage of time spent eyes open."
     q1_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
     q1_labels = ["I do not recall anything about this", "0% of the time", "", "", "", "", "50% of the time", "", "", "", "", "100% of the time"]
 
-    # Q2: Follow instruction successfully (0-10)
+    # Q2: Follow instruction successfully
     q2_txt = "How successfully did you follow the instruction?"
     q2_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
     q2_labels = ["I do not recall anything about this", "On average, unsuccessfully", "", "", "", "", " On average, somewhat successfully", "", "", "", "", "On average, very successfully"]
 
-    # Q3: Effort (0-10)
+    # Q3: Effort 
     q3_txt = "How much effort did you feel during the session?"
     q3_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
     q3_labels = ["I do not recall anything about this", "Very effortful, was hard work", "", "", "", "", "", "", "", "", "", "Utterly effortless; felt the session was spontaneous"]
 
-    # Q4: Energy/arousal (0-10)
+    # Q4: Energy/arousal 
     q4_txt = "What was your level of energy or arousal during the session?"
     q4_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
     q4_labels = ["I do not recall anything about this", "Very low energy (on the verge of falling asleep, or actually asleep)", "", "", "", "", "Average level of energy or arousal", "", "", "", "", "Very high energy or arousal (the high energy that comes from a strong cup of coffee or tea)"]
 
-    # Q5: Monitoring mind movements (0-10)
+    # Q5: Monitoring mind movements 
     q5_txt = "How much were you monitoring the movements and processes of the mind?"
     q5_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
     q5_labels = ["I do not recall anything about this", "Never (0%)", "", "", "", "", "Sometimes (50%)", "", "", "", "", "Always (100%)"]
 
-    # Q6: Field of awareness (0-10)
+    # Q6: Field of awareness 
     q6_txt = "Was your field of awareness open, extended, or spacious? Or rather focused and narrow?"
     q6_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
     q6_labels = ["I do not recall anything about this", "Usually extremely open, extended, spacious", "", "", "", "", "Somewhat open, extended, spacious", "", "", "", "", "Usually narrow"]
 
-    # Q7: Thoughts appearing real (0-10)
-    q7_txt = "To what degree did thoughts appear to be real (10) as opposed to appearing just as thoughts (0)? For example, the thought of a strawberry can appear to be a real strawberry, or simply like a thought."
+    # Q7: Thoughts appearing real 
+    q7_txt = "To what degree did thoughts appear to be real as opposed to appearing just as thoughts ? (ex: the thought of a apple can appear to be a real apple, or simply like a thought)."
     q7_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
     q7_labels = ["I do not recall anything about this", "Mostly appearing just as thoughts", "", "", "", "", "Sometimes real, sometimes just as thoughts", "", "", "", "", "Mostly appearing to be real"]
 
-    # Q8: Unrelated thoughts frequency (0-10)
+    # Q8: Unrelated thoughts frequency 
     q8_txt = "How frequently did you have thoughts unrelated to your meditation (inner speech, mental imagery, memories)?"
     q8_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
     q8_labels = ["I do not recall anything about this", "Never (0%)", "", "", "", "", "Moderately (50%)", "", "", "", "", "All the time (100%)"]
 
-    # Q9: Stability vs distraction (0-10)
-    q9_txt = "During the session, how stable or distracted was your practice? (Distraction means attention being drawn away from your practice, for example by getting caught in a thought or losing track of your practice as when you fall asleep)."
+    # Q9: Stability vs distraction 
+    q9_txt = "During the session, how stable or distracted was your practice?."
     q9_options = ["X", "0", "1", "2", "3", "4", "5", "6", "7", "8", "9", "10"]
     q9_labels = ["I do not recall anything about this", "Unstable, always distracted", "", "", "", "", "Mostly stable, sometimes distracted", "", "", "", "", "The state was completely stable, no distraction (or attention capture)"]
 
-    # Q10: Nature of Mind recognition (X, 0-4)
+    # Q10: Nature of Mind recognition 
     q10_txt = "According to your own understanding, did you experience any moments during the session that you would describe as recognizing the Nature of Mind?"
     q10_options = ["X", "0", "1", "2", "3", "4"]
     q10_labels = ["I do not recall enough to answer this question.", "No, I did not recognize the Nature of Mind", "Yes, once", "A few times", "Many times", "Most of the time"]
 
-    # Q11: Confidence in NOM rating (only if NOM != 0, X)
+    # Q11: Confidence in NOM rating 
     q11_txt = "How confident are you about your rating?"
     q11_options = ["X", "1", "2", "3"]
     q11_labels = ["I do not recall enough to answer this question.", "Not confident", "A little confident", "Confident"]
 
-    # Q12: Time experience (X, 1-3)
+    # Q12: Time experience 
     q12_txt = "How was time most frequently experienced?"
     q12_options = ["X", "1", "2", "3"]
     q12_labels = ["I do not recall anything about this", "Experience seemed beyond time", "I was in the present moment", "I was lost in the future or the past"]
@@ -1123,8 +1126,9 @@ def draw_selection_box_bloc(pos):
 def draw_question_block_bloc(question_text, time_half=None):
     draw_text(question_text, height=PHENO_BLOC_FONT_QUESTION, wrap=TEXT_WRAP, pos=(0, PHENO_BLOC_POS_Y_QUESTION))
     if time_half:
-        label = "Début (first half of the block)" if time_half == "T1" else "Fin (second half of the block)"
-        draw_text(f"Respond for {label}", height=PHENO_BLOC_FONT_TIME_HALF, wrap=TEXT_WRAP,
+        label_key = "pheno_time_half_first" if time_half == "T1" else "pheno_time_half_second"
+        label = TEXTS[language][label_key]
+        draw_text(label, height=PHENO_BLOC_FONT_TIME_HALF, wrap=TEXT_WRAP,
                    pos=(0, PHENO_BLOC_POS_Y_TIME_HALF), color="yellow", bold=True)
 
 def ask_scale_vertical_bloc(question_text, scale_options, scale_labels, start_idx=1, time_half=None, spacing=None, time_half_y=None):
@@ -1922,7 +1926,14 @@ show_instruction_space(
 session_dt = now_str()
 
 # ============================================================
-# INITIAL BASELINE STATE (5 minutes at the very start)
+# BASELINE INDUCTION INSTRUCTION
+show_instruction_space(
+    TEXTS[language]["baseline_induction_instruction"].format(duration="7 minutes"),
+    TEXTS[language]["intro_hint"],
+)
+
+# ============================================================
+# INITIAL BASELINE STATE (7 minutes at the very start)
 show_baseline_state()
 
 show_instruction_space(
@@ -1964,17 +1975,6 @@ def run_condition_task(cond):
     faf_task = FAFDetectionTask() if condition_task == "V" else None
     all_blocks = build_experiment()
 
-    # Determine the correct instruction key based on group and condition.
-    instruction_key = f"consigne_{group}_{condition_task}"
-
-    consigne_start_key = "CONSIGNE_V_START" if condition_task == "V" else "CONSIGNE_M_START"
-    consigne_end_key = "CONSIGNE_V_END" if condition_task == "V" else "CONSIGNE_M_END"
-
-    show_instruction_space(
-        TEXTS[language][instruction_key], "",
-        start_key=consigne_start_key, end_key=consigne_end_key,
-    )
-
     # Condition-specific preparation
     if condition_task == "M":
         # M condition: prepare meditation → long fixation (8 min) → ready to start
@@ -2002,24 +2002,17 @@ def run_condition_task(cond):
         responses, question_texts = ask_phenomenology_questions_after_induction()
         save_phenomenology_responses("after_induction_M", responses, question_texts)
 
-        show_text_timed(TEXTS[language]["after_pheno_M"], seconds=5.0, height=TEXT_HEIGHT, wrap=TEXT_WRAP)
-
-        show_text_timed(TEXTS[language]["meditation_start_stimuli"], seconds=5.0, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
-                         start_key="MEDITATION_2_START", end_key="MEDITATION_2_END")
-
-    else:  # V condition
-        # V condition: prepare vigilance → long fixation (8 min) → ready to start
-        msg_key = "vigilance_prepare"
         show_instruction_space(
-            TEXTS[language][msg_key],
-            TEXTS[language]["vigilance_prepare_hint"],
-            start_key="VIGILANCE_1_START", end_key="VIGILANCE_1_END",
+            TEXTS[language]["meditation_reconnection"],
+            TEXTS[language]["meditation_prepare_hint"],
         )
 
-        # Baseline induction instruction (8 min)
+    else:  # V condition
+        # V condition: prepare vigilance → long fixation with sounds (8 min) → ready to start
         show_instruction_space(
-            TEXTS[language]["baseline_induction_instruction"].format(duration="8 minutes"),
-            TEXTS[language]["intro_hint"],
+            TEXTS[language]["vigilance_prepare"],
+            TEXTS[language]["vigilance_hint"],
+            start_key="VIGILANCE_1_START", end_key="VIGILANCE_1_END",
         )
 
         # Vigilance preparation period (8 min): fixation cross + random near/far sounds
@@ -2034,19 +2027,15 @@ def run_condition_task(cond):
         responses, question_texts = ask_phenomenology_questions_after_induction()
         save_phenomenology_responses("after_induction_V", responses, question_texts)
 
-        show_text_timed(TEXTS[language]["after_pheno_V"], seconds=5.0, height=TEXT_HEIGHT, wrap=TEXT_WRAP)
-
-        show_text_timed(TEXTS[language]["vigilance_start_stimuli"], seconds=5.0, height=TEXT_HEIGHT, wrap=TEXT_WRAP,
-                         start_key="VIGILANCE_2_START", end_key="VIGILANCE_2_END")
+        show_instruction_space(
+            TEXTS[language]["vigilance_reconnection"],
+            TEXTS[language]["vigilance_hint"],
+        )
 
     send_event("CONDITION_START", send_lsl=True, send_ttl=False)
 
     for block_idx, block in enumerate(all_blocks):
         print(f"\nStart block {block_idx + 1}/{NUM_BLOCKS_PPS}")
-
-        # For V condition only: vigilance prompt before each block
-        if condition_task == "V":
-            show_vigilance_prompt()
 
         show_baseline(FIXATION_BEFORE_BLOCK, send_markers=True)
 
@@ -2123,6 +2112,10 @@ def run_condition_task(cond):
         response_keys = ["success_rating", "nom_recognition", "nom_confidence", "near_far_difference",
                         "boundary_experience", "center_of_consciousness", "sounds_location", "sound_observer_separation"]
         save_phenomenology_responses(block_id, responses, question_texts, response_keys)
+
+        # Display reconnection message after phenomenology questions
+        pheno_bloc_key = "after_pheno_bloc_M" if condition_task == "M" else "after_pheno_bloc_V"
+        show_instruction_space(TEXTS[language][pheno_bloc_key], TEXTS[language]["intro_hint"])
 
         block_log_rows.append(row)
         save_logs_now()
@@ -2330,34 +2323,17 @@ try:
     # (see show_resting_state), not once globally here.
 
     if rt_timing == "before":
-        # RT block runs FIRST, before M and V conditions
         run_rt_block_task()
-
-        # Short break before the first M/V condition
         show_condition_transition_pause()
-
         run_condition_task(cond_1)
-
-        # Short break between the two M/V condition blocks
         show_condition_transition_pause()
-
         run_condition_task(cond_2)
 
     else:
-        # RT block runs LAST, after both M and V conditions (default)
         run_condition_task(cond_1)
-
-        # Short break between the two M/V condition blocks
         show_condition_transition_pause()
-
         run_condition_task(cond_2)
-
-        # Short break before the final RT block
         show_pre_rt_pause()
-
-        # RT block runs last: participants are already familiar with
-        # the stimuli (familiarization + both M/V blocks), so no separate
-        # practice/training phase is needed here.
         run_rt_block_task()
 
 finally:
