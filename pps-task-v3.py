@@ -43,7 +43,7 @@ AUDIO_DIR = "audio"
 ARDUINO_PORT = "COM5"
 ARDUINO_BAUDRATE = 115200
 TTL_BYTE = 1
-DURATION_TACTILE = 100  # ms - sent to Arduino, firmware clamps any value below 50ms
+DURATION_TACTILE = 100  # ms - sent to Arduino.
 INTENSITY = 250
 
 # ============================================================
@@ -71,7 +71,7 @@ DURATION_FEEDBACK = 3.0
 FEEDBACK_GOOD_MAX_ERROR = 3.0
 
 # Resting state and meditation
-DURATION_BASELINE_STATE = 3.0  # 5 minutes initial baseline at start of experiment
+DURATION_BASELINE_STATE = 420.0  # 7 minutes initial baseline at start of experiment
 DURATION_RESTING_STATE_MSG = 6.0  # intro message before the fixation cross, auto-timed
 DURATION_INDUCTION_MEDITATION = 4.0  # 7 minutes fixation cross for M condition
 DURATION_INDUCTION_VIGILANCE = 4.0  # 7 minutes fixation cross for V condition
@@ -152,6 +152,7 @@ TRIGGER_CODES = {
     "RT_BLOCK_END": 61,
 
     # Spacebar responses
+    "SPACEBAR_M": 72,      # Spacebar press in Meditation condition (mind recognition loss)
     "SPACEBAR_V": 70,      # Spacebar press in Vigilance condition
     "SPACEBAR_RT": 71,     # Spacebar press in RT block
 
@@ -332,7 +333,7 @@ TRIAL_FIELDNAMES = [
     "block", "trial_index", "condition_trial",
     "isi_sec", "stim_onset_clock", "stim_offset_clock", "trigger_code",
     "lsl_sent", "ttl_sent", "lsl_time", "tactile_lsl_time", "ttl_on_time", "ttl_off_time",
-    "audio_play_call_time", "audio_side",
+    "audio_play_call_time", "audio_side", "meditation_spacebar_times",
 ]
 
 RT_TRIAL_FIELDNAMES = [
@@ -1485,7 +1486,7 @@ class FAFDetectionTask:
 clock = core.Clock()
 clock.reset()
 
-def frame_loop_until(t_end, vigilance_task=None, faf_task=None, trial_idx=None, stim_onset=0):
+def frame_loop_until(t_end, vigilance_task=None, faf_task=None, trial_idx=None, stim_onset=0, meditation_spacebar_times=None):
     space_key_pressed_this_trial = False
 
     while True:
@@ -1497,6 +1498,13 @@ def frame_loop_until(t_end, vigilance_task=None, faf_task=None, trial_idx=None, 
 
         draw_fixation_only()
 
+        # Detect spacebar presses for meditation condition (mind recognition loss tracking)
+        if meditation_spacebar_times is not None and condition_task == "M":
+            keys = get_keys(["space"])
+            if any(k.name == "space" for k in keys):
+                response_time = now - stim_onset
+                meditation_spacebar_times.append(response_time)
+                send_event("SPACEBAR_M", send_lsl=True, send_ttl=False)
 
         # Detect spacebar presses for FAF detection (only during vigilance condition)
         if faf_task is not None and condition_task == "V" and not space_key_pressed_this_trial:
@@ -1693,6 +1701,7 @@ def run_trial(condition_trial, block_idx, trial_idx, faf_task=None):
     audio_present, tactile_present, audio_side = describe_trial(condition_trial)
     stim_onset = clock.getTime()
 
+    meditation_spacebar_times = []
     if faf_task is not None:
         faf_task.add_stimulus(condition_trial, trial_idx, stim_onset)
 
@@ -1766,18 +1775,17 @@ def run_trial(condition_trial, block_idx, trial_idx, faf_task=None):
 
     # Stimulus presentation window
     stim_offset = stim_onset + DURATION_AUDIO
-    frame_loop_until(stim_offset, faf_task=faf_task, trial_idx=trial_idx, stim_onset=stim_onset)
+    frame_loop_until(stim_offset, faf_task=faf_task, trial_idx=trial_idx, stim_onset=stim_onset, meditation_spacebar_times=meditation_spacebar_times)
     stop_all_sounds()
-
-    # Offset marker
-    send_event(condition_trial + "_OFF", send_lsl=True, send_ttl=False)
 
     # Inter-stimulus interval
     isi = random.choice(ISI_VALUES_PPS)
     trial_end = stim_offset + isi
-    frame_loop_until(trial_end, faf_task=faf_task, trial_idx=trial_idx, stim_onset=stim_onset)
+    frame_loop_until(trial_end, faf_task=faf_task, trial_idx=trial_idx, stim_onset=stim_onset, meditation_spacebar_times=meditation_spacebar_times)
 
     stim_offset_clock = stim_onset + DURATION_AUDIO
+
+    meditation_spacebar_str = "|".join(f"{round(t, 6)}" for t in meditation_spacebar_times) if meditation_spacebar_times else ""
 
     trial_log_rows.append({
         "participant_num": pp_id,
@@ -1799,6 +1807,7 @@ def run_trial(condition_trial, block_idx, trial_idx, faf_task=None):
         "ttl_off_time": event_info["ttl_off_time"],
         "audio_play_call_time": audio_play_call_time,
         "audio_side": audio_side,
+        "meditation_spacebar_times": meditation_spacebar_str,
     })
 
 # ============================================================
