@@ -73,8 +73,8 @@ FEEDBACK_GOOD_MAX_ERROR = 3.0
 # Resting state and meditation
 DURATION_BASELINE_STATE = 3.0  # 5 minutes initial baseline at start of experiment
 DURATION_RESTING_STATE_MSG = 6.0  # intro message before the fixation cross, auto-timed
-DURATION_INDUCTION_MEDITATION = 4.0  # 8 minutes fixation cross for M condition
-DURATION_INDUCTION_VIGILANCE = 4.0  # 8 minutes fixation cross for V condition
+DURATION_INDUCTION_MEDITATION = 4.0  # 7 minutes fixation cross for M condition
+DURATION_INDUCTION_VIGILANCE = 4.0  # 7 minutes fixation cross for V condition
 DURATION_BASELINE_CONDITION = 1.0  # 2 minutes fixation cross per condition
 DURATION_TASK_START_MSG = 3.0
 DURATION_VIGILANCE_1 = 3.0    # short instruction shown at the start of EACH V block
@@ -122,13 +122,10 @@ TARGET_RMS = 0.08
 # ============================================================
 # TRIGGER CODES FOR LSL
 TRIGGER_CODES = {
-    # Stimuli (3 types only)
+    # Stimuli (3 types only - onset only, no offset)
     "AN": 1,           # Audio Near
     "AF": 2,           # Audio Far
     "T": 3,            # Tactile
-    "AN_OFF": 11,
-    "AF_OFF": 12,
-    "T_OFF": 13,
 
     # Baseline (7 min initial)
     "BASELINE_START": 20,
@@ -333,7 +330,7 @@ BLOCK_FIELDNAMES = [
 TRIAL_FIELDNAMES = [
     "group", "participant_num", "datetime", "condition_task",
     "block", "trial_index", "condition_trial",
-    "isi_sec", "stim_onset_clock", "stim_offset_clock", "trigger_code", "trigger_code_offset",
+    "isi_sec", "stim_onset_clock", "stim_offset_clock", "trigger_code",
     "lsl_sent", "ttl_sent", "lsl_time", "tactile_lsl_time", "ttl_on_time", "ttl_off_time",
     "audio_play_call_time", "audio_side",
 ]
@@ -341,7 +338,7 @@ TRIAL_FIELDNAMES = [
 RT_TRIAL_FIELDNAMES = [
     "group", "participant_num", "datetime", "condition_task",
     "block", "trial_index", "condition_trial",
-    "isi_sec", "stim_onset_clock", "stim_offset_clock", "trigger_code", "trigger_code_offset",
+    "isi_sec", "stim_onset_clock", "stim_offset_clock", "trigger_code",
     "lsl_sent", "ttl_sent", "lsl_time", "tactile_lsl_time", "ttl_on_time", "ttl_off_time",
     "audio_play_call_time", "audio_side", "response_type",
     "reaction_time_sec", "response_absolute_clock", "response_lsl_time",
@@ -1638,9 +1635,6 @@ def run_rt_trial(condition_trial, trial_idx, block_idx=0):
     frame_loop_until(stim_offset)
     stop_all_sounds()
 
-    # Offset marker
-    send_event(condition_trial + "_OFF", send_lsl=True, send_ttl=False)
-
     # Response detection window. Keys are now ALWAYS checked (not gated
     # behind tactile_present) so that spurious responses on AN/AF-only
     # trials (false alarms) are captured rather than silently dropped.
@@ -1668,7 +1662,6 @@ def run_rt_trial(condition_trial, trial_idx, block_idx=0):
     frame_loop_until(trial_end)
 
     stim_offset_clock = stim_onset + DURATION_AUDIO
-    trigger_code_offset = TRIGGER_CODES.get(condition_trial + "_OFF", 0)
 
     rt_log_rows.append({
         "participant_num": pp_id,
@@ -1682,7 +1675,6 @@ def run_rt_trial(condition_trial, trial_idx, block_idx=0):
         "stim_onset_clock": round(stim_onset, 6),
         "stim_offset_clock": round(stim_offset_clock, 6),
         "trigger_code": event_info["event_code"],
-        "trigger_code_offset": trigger_code_offset,
         "lsl_sent": event_info["lsl_sent"],
         "ttl_sent": event_info["ttl_sent"],
         "lsl_time": event_info["lsl_time"],
@@ -1786,7 +1778,6 @@ def run_trial(condition_trial, block_idx, trial_idx, faf_task=None):
     frame_loop_until(trial_end, faf_task=faf_task, trial_idx=trial_idx, stim_onset=stim_onset)
 
     stim_offset_clock = stim_onset + DURATION_AUDIO
-    trigger_code_offset = TRIGGER_CODES.get(condition_trial + "_OFF", 0)
 
     trial_log_rows.append({
         "participant_num": pp_id,
@@ -1800,7 +1791,6 @@ def run_trial(condition_trial, block_idx, trial_idx, faf_task=None):
         "stim_onset_clock": round(stim_onset, 6),
         "stim_offset_clock": round(stim_offset_clock, 6),
         "trigger_code": event_info["event_code"],
-        "trigger_code_offset": trigger_code_offset,
         "lsl_sent": event_info["lsl_sent"],
         "ttl_sent": event_info["ttl_sent"],
         "lsl_time": event_info["lsl_time"],
