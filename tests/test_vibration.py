@@ -8,7 +8,7 @@ from psychopy.hardware import keyboard
 ARDUINO_PORT = "COM5"
 ARDUINO_BAUDRATE = 115200
 DURATION_MILLISECONDS = 100
-INTENSITY = 150
+INTENSITY = 350
 
 # ============================================================
 # GLOBAL STATE

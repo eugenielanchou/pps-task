@@ -1,5 +1,5 @@
 const uint8_t MOTEUR = 3;
-const unsigned long DURATION_DEFAULT_MS = 50;
+const unsigned long DURATION_DEFAULT_MS = 100;
 const unsigned long DURATION_MAX = 3000;
 
 bool motor_active = false;

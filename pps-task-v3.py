@@ -12,11 +12,12 @@ from psychopy import prefs
 # ============================================================
 # MACHINE-SPECIFIC SETTINGS
 try:
-    from config_local import AUDIO_DEVICE_NAME
+    from config_local import AUDIO_DEVICE_NAME, STUDY_ROOT
 except ImportError:
     raise RuntimeError(
         "Missing config_local.py. Copy config_local.example.py to "
-        "config_local.py and fill in AUDIO_DEVICE_NAME for this machine."
+        "config_local.py and fill in AUDIO_DEVICE_NAME and STUDY_ROOT "
+        "for this machine."
     )
 
 # ============================================================
@@ -32,11 +33,13 @@ from psychopy.hardware import keyboard
 # GLOBAL FLAGS
 LSL_AVAILABLE = True
 SERIAL_AVAILABLE = True
-ARDUINO_ENABLED = False
+ARDUINO_ENABLED = True
 
 # GENERAL PATHS
-DATA_DIR = "data"
+# Behavioral logs go to STUDY_ROOT/sub-<pp_id>/ses-<ses_id>/beh/ (see beh_dir()),
+# alongside the matching EEG recording written by LabRecorder.
 AUDIO_DIR = "audio"
+NOISE_CACHE_DIR = "audio_cache"  # generated white-noise wav files (not tracked in git)
 
 # ============================================================
 # ARDUINO VIBRATOR SETTINGS
@@ -44,7 +47,7 @@ ARDUINO_PORT = "COM5"
 ARDUINO_BAUDRATE = 115200
 TTL_BYTE = 1
 DURATION_TACTILE = 100  # ms - sent to Arduino.
-INTENSITY = 250
+INTENSITY = 300
 
 # ============================================================
 # EXPERIMENT DESIGN
@@ -62,12 +65,11 @@ ISI_VALUES_PPS = [2.5, 2.6, 2.7, 2.8, 2.9, 3.0]
 FIXATION_BEFORE_BLOCK = 7.0
 DURATION_END_BLOCK = 2.5
 DURATION_AFTER_BLOCK = 3.0  # inter-block message (after_block_rt), auto-timed
-DURATION_FEEDBACK = 3.0
 
 # Resting state and meditation
-DURATION_BASELINE_STATE = 4.0  # 7 minutes initial baseline at start of experiment
-DURATION_INDUCTION_MEDITATION = 4.0  # 7 minutes fixation cross for M condition
-DURATION_INDUCTION_VIGILANCE = 4.0  # 7 minutes fixation cross for V condition
+DURATION_BASELINE_STATE = 2.0  # 7 minutes initial baseline at start of experiment
+DURATION_INDUCTION_MEDITATION = 2.0  # 7 minutes fixation cross for M condition
+DURATION_INDUCTION_VIGILANCE = 2.0  # 7 minutes fixation cross for V condition
 DURATION_END = 3.0            # final "thank you" screen, auto-timed
 
 # ============================================================
@@ -119,7 +121,7 @@ TRIGGER_CODES = {
     "BASELINE_START": 20,
     "BASELINE_END": 21,
 
-    # Induction periods (8 min)
+    # Induction periods (7 min)
     "INDUCTION_M_START": 30,
     "INDUCTION_M_END": 31,
     "INDUCTION_V_START": 32,
@@ -145,6 +147,7 @@ TRIGGER_CODES = {
     # RT block
     "RT_BLOCK_START": 60,
     "RT_BLOCK_END": 61,
+    "RT_TRAINING_END": 62,     # End of RT training, real RT trials about to start
 
     # Spacebar responses
     "SPACEBAR_M": 72,      # Spacebar press in Meditation condition (mind recognition loss)
@@ -155,10 +158,6 @@ TRIGGER_CODES = {
     "PHENO_RESPONSE": 80,
     "PHENO_BLOCK_START": 81,   # Start of a full phenomenology question battery
     "PHENO_BLOCK_END": 82,     # End of a full phenomenology question battery
-
-    # Vigilance detection feedback (V condition only)
-    "FAF_FEEDBACK_START": 83,
-    "FAF_FEEDBACK_END": 84,
 
     # Session start/end
     "EXP_START": 10,
@@ -174,8 +173,12 @@ TEXTS = {
         "lang_select": "Pour avoir les consignes en français, appuyez sur : F\n\nTo have the instructions in English, press: E",
         "participant_heading": "Le numéro du participant :",
         "participant_hint": "Tapez l'identifiant, puis appuyez sur la barre d'espace.",
+        "session_heading": "Le numéro de session :",
+        "session_hint": "Appuyez sur la barre d'espace.",
         "condition_heading": "La condition :",
         "rt_timing_heading": "Le RT :",
+        "familiarization_heading": "La familiarisation :",
+        "baseline_heading": "Le baseline :",
 
         # ===== FAMILIARIZATION =====
         "intro_hint": "Cliquer sur la barre d'espace.",
@@ -214,7 +217,7 @@ TEXTS = {
         "pheno_induction_q2_labels": ["Je ne me souviens pas", "Très laborieux, c'était du travail", "", "", "", "", "", "", "", "", "", "Complètement sans effort; la session semblait spontanée"],
         "pheno_induction_q3": "Quel était votre niveau d'énergie ou d'activation pendant la session ?",
         "pheno_induction_q3_labels": ["Je ne me souviens pas", "Très peu d'énergie (au bord de l'endormissement, ou réellement endormi)", "", "", "", "", "Niveau moyen d'énergie ou d'activation", "", "", "", "", "Beaucoup d'énergie ou d'activation (l'énergie qu'on ressent après une tasse de café fort)"],
-        "pheno_induction_q4": "Aviez-vous conscience des mouvements et des processus de l'esprit ?",
+        "pheno_induction_q4": "Dans quelle mesure étiez-vous conscient(e) des processus de l'esprit ?",
         "pheno_induction_q4_labels": ["Je ne me souviens pas", "Jamais (0%)", "", "", "", "", "Parfois (50%)", "", "", "", "", "Toujours (100%)"],
         "pheno_induction_q5": "Votre champ de conscience était-il ouvert, étendu, spacieux ? Ou plutôt focalisé et étroit ?",
         "pheno_induction_q5_labels": ["Je ne me souviens pas", "Généralement très ouvert, étendu, spacieux", "", "", "", "", "Plutôt ouvert, étendu, spacieux", "", "", "", "", "Généralement étroit"],
@@ -249,19 +252,16 @@ TEXTS = {
         "pheno_bloc_q8": "À quel point les expériences auditives impliquaient-elles une séparation entre le son entendu et un observateur ?",
         "pheno_bloc_q8_labels": ["Je ne me souviens pas", "Il n'y avait pas de sensation d'un son entendu par un observateur séparé du son", "Il semblait y avoir un observateur séparé du son, mais sans forte sensation de séparation", "Il y avait une claire sensation que les sons étaient entendus par un observateur séparé des sons"],
 
-        # ===== FAF DETECTION FEEDBACK (V condition only) =====
-        "faf_feedback_template": "Cibles détectées : {hits}/{total}\nFaux positifs : {fp}\nTaux de détection : {rate:.1f}%\nTR moyen : {rt:.3f}s",
-
         # ===== BREAKS & TRANSITIONS (within a condition, per block) =====
         "end_block": "Fin du bloc {}/{}.",
-        "after_pheno_bloc_M": "Prenez un moment pour vous reconnecter avec votre pratique de méditation de la nature de l'esprit.\n\nLes sons et les vibrations vont bientôt commencer.",
+        "after_pheno_bloc_M": "Reprenez votre pratique de la nature de l'esprit pendant que les sons et les vibrations se produisent, en gardant votre regard sur la croix.\n\nAppuyez une fois sur la barre d'espace dès qu'un moment de reconnaissance de la nature de l'esprit se termine.",
         "after_pheno_bloc_V": "Retournez à un état de concentration et de vigilance, en concentrant votre attention sur les sons. Gardez votre regard sur la croix.\n\nAppuyez sur la barre d'espace chaque fois que vous entendez deux sons lointains d'affilée.",
 
         # ===== BETWEEN CONDITIONS / BEFORE RT =====
-        "pause_condition_1": "Fin de la première partie.\n\nPrenez quelques minutes. Vous pouvez bouger et demander de l'eau à l'expérimentateur si besoin.",
-        "pause_entre_condition_1_hint": "Appuyez sur la barre d'espace quand vous êtes prêt à commencer la partie suivante.",
-        "pause_condition_2": "Fin de la deuxième partie.\n\nPrenez quelques minutes. Vous pouvez bouger et demander de l'eau à l'expérimentateur si besoin.",
-        "pause_entre_condition_2_hint": "Appuyez sur la barre d'espace quand vous êtes prêt à commencer la dernière partie.",
+        "pause_condition_1": "Fin de la première partie.\n\nPrenez quelques minutes pour vous détendre. Appelez l'expérimentateur avant de continuer.",
+        "pause_entre_condition_1_hint": "Appelez l'expérimentateur.",
+        "pause_condition_2": "Fin de la deuxième partie.\n\nPrenez quelques minutes pour vous détendre. Appelez l'expérimentateur avant de continuer.",
+        "pause_entre_condition_2_hint": "Appelez l'expérimentateur.",
 
         # ===== REACTION TIME BLOCK =====
         "rt_block_intro": "Appuyez sur la barre d'espace dès que vous sentez la vibration, aussi rapidement que possible.",
@@ -269,6 +269,7 @@ TEXTS = {
         "rt_block_end": "Fin du bloc {}/{}.",
         "after_block_rt": "La même tâche va reprendre.\n\nCliquer aussi rapidement que possible sur la barre d'espace quand vous sentez la VIBRATION.",
         "rt_training_intro": "Commençons par un court entraînement.",
+        "rt_training_end_msg": "Fin de l'entraînement. La tâche va maintenant commencer.",
         "rt_feedback_good": "Bon !",
         "rt_feedback_click": "Cliquer !",
 
@@ -281,8 +282,12 @@ TEXTS = {
         "lang_select": "Pour avoir les consignes en français, appuyez sur : F\n\nTo have the instructions in English, press: E",
         "participant_heading": "Participant number:",
         "participant_hint": "Type the ID, then press the space bar.",
+        "session_heading": "Session number:",
+        "session_hint": "Type the number, then press the space bar.",
         "condition_heading": "Condition:",
         "rt_timing_heading": "RT :",
+        "familiarization_heading": "Familiarization:",
+        "baseline_heading": "Baseline:",
 
         # ===== FAMILIARIZATION =====
         "intro_hint": "Press the space bar to continue.",
@@ -297,18 +302,18 @@ TEXTS = {
         
         
         # ===== BASELINE =====
-        "baseline_induction_instruction": "First, please sit still and gaze at the cross that will appear at the center of the screen. \nThis is a non-meditative state. It is okay to become absorbed in and lost in your thoughts and emotions. \nAllow your mind to wander for 7 minutes.",
+        "baseline_induction_instruction": "First, please sit still and gaze at the cross that will appear at the center of the screen. \nThis is a non-meditative state. It is okay to become absorbed in and lost in your thoughts and emotions. \n\nAllow your mind to wander for 7 minutes.",
 
 
         # ===== MEDITATION =====
-        "meditation_prepare": "We will now begin a meditation practice on the Nature of Mind. Keep your eyes open and rest your gaze gently on the cross on the screen.\n\nYou will first have 7 minutes to practice on your own. A gong will mark the beginning and end of this period. \n\nYou will then complete a short questionnaire and continue to sustain this state during the next part of the experiment.",
+        "meditation_prepare": "We will now begin a meditation practice on the Nature of Mind. Keep your eyes open and rest your gaze gently on the cross on the screen.\n\nYou will first have 7 minutes to practice on your own. A gong will mark the beginning and end of this period. \n\nYou will then complete a questionnaire and continue to sustain this state during the next part of the experiment.",
         "meditation_hint": "Press the space bar when you are ready.",
         "meditation_reconnection": "Resume your Nature of Mind practice. Maintain this practice while the sounds and vibrations occur.\n\nIf you recognise the Nature of Mind, press the space bar once when this recognition ends, then continue your practice.\n\n6 short blocks will be separated by on-screen questions.",
 
         # ===== VIGILANCE =====
-        "vigilance_prepare": "We will now begin a concentration task. Please keep your gaze steadily focused on the cross that will appear at the center of the screen. Let the cross remain the main object of your attention, while gently setting aside any distractions (thoughts, emotions ect..).\n\n" "You will first have 7 minutes to practice maintaining your focus on the cross on your own. You will then complete a questionnaire before continuing to sustain this focused state during the next part of the experiment.",
+        "vigilance_prepare": "We will now begin a concentration task. Please keep your gaze steadily focused on the cross that will appear at the center of the screen. Let the cross remain the main object of your attention, while setting aside any distractions (thoughts, emotions).\n\n" "You will first have 7 minutes to practice maintaining your focus on the cross. You will then complete a questionnaire before continuing to sustain this focused state during the next part of the experiment.",
         "vigilance_hint": "Press the space bar when you are ready.",
-        "vigilance_reconnection": "Return to the same concentrated state. Continue to focus your attention on the sounds coming from the speakers, while keeping your gaze on the cross.\nIn addition, press the space bar whenever you hear two distant sounds in a row. \n\nThe task will consist of 6 short blocks, with questions displayed on the screen between blocks.",
+        "vigilance_reconnection": "Return to a concentrated state. Focus your attention on the sounds coming from the speakers, press the space bar whenever you hear two distant sounds in a row. \n\nThe task will consist of 6 short blocks, with questions displayed on the screen between blocks.",
 
         # ===== PHENOMENOLOGY QUESTIONS =====
         "pheno_questions_intro_induction": "Please answer the following questions using the arrow keys.\n\nWe invite you to recall the previous task in two successive moments: its beginning and its end. Answer each question separately for each of these two moments.",
@@ -323,7 +328,7 @@ TEXTS = {
         "pheno_induction_q2_labels": ["I do not recall anything about this", "Very effortful, was hard work", "", "", "", "", "", "", "", "", "", "Utterly effortless; felt the session was spontaneous"],
         "pheno_induction_q3": "What was your level of energy or arousal during the session?",
         "pheno_induction_q3_labels": ["I do not recall anything about this", "Very low energy (on the verge of falling asleep, or actually asleep)", "", "", "", "", "Average level of energy or arousal", "", "", "", "", "Very high energy or arousal (the high energy that comes from a strong cup of tea)"],
-        "pheno_induction_q4": "How much were you monitoring the movements and processes of the mind?",
+        "pheno_induction_q4": "How much were you aware of the processes of the mind?",
         "pheno_induction_q4_labels": ["I do not recall anything about this", "Never (0%)", "", "", "", "", "Sometimes (50%)", "", "", "", "", "Always (100%)"],
         "pheno_induction_q5": "Was your field of awareness open, extended, or spacious? Or rather focused and narrow?",
         "pheno_induction_q5_labels": ["I do not recall anything about this", "Usually extremely open, extended, spacious", "", "", "", "", "Somewhat open, extended, spacious", "", "", "", "", "Usually narrow"],
@@ -358,26 +363,25 @@ TEXTS = {
         "pheno_bloc_q8": "To what extent did experiences of sounds involve a separation between the sound being heard and an observer (a 'hearer'), as opposed to no separation?",
         "pheno_bloc_q8_labels": ["I do not recall anything about this", "There was no sense of a sound being heard by an observer who was separate from the sound", "There seemed to be an observer separate from the sound, but without a strong sense of separation", "There was a clear sense that the sounds were being heard by an observer who was separate from the sounds"],
 
-        # ===== FAF DETECTION FEEDBACK (V condition only) =====
-        "faf_feedback_template": "Targets detected: {hits}/{total}\nFalse positives: {fp}\nDetection rate: {rate:.1f}%\nAverage RT: {rt:.3f}s",
-        "after_pheno_bloc_M": "Take a moment to reconnect with your Nature of Mind meditation practice.\n\nThe sounds and vibrations will begin shortly.",
+        "after_pheno_bloc_M": "Resume your Nature of Mind practice while the sounds and vibrations occur, keeping your gaze on the cross.\n\nPress the space bar once as soon as a moment of recognizing the Nature of Mind ends.",
         "after_pheno_bloc_V": "Return to a concentrated and vigilant state, focusing your attention on the sounds. Keep your gaze on the cross.\n\nPress the space bar whenever you hear two distant sounds in a row.",
 
         # ===== BREAKS & TRANSITIONS (within a condition, per block) =====
         "end_block": "End of block {}/{}.",
 
         # ===== BETWEEN CONDITIONS / BEFORE RT =====
-        "pause_condition_1": "End of the first part.\n\nTake a few minutes. You can stretch, relax and ask the experimenter for water if needed.",
-        "pause_entre_condition_1_hint": "Press the space bar when you are ready to begin the next part.",
-        "pause_condition_2": "End of the second part.\n\nTake a few minutes. You can move around and ask the experimenter for water if needed.",
-        "pause_entre_condition_2_hint": "Press the space bar when you are ready to begin the last part.",
+        "pause_condition_1": "End of the part.\n\nTake a few minutes to relax. Call the experimenter before continuing.",
+        "pause_entre_condition_1_hint": "Call the experimenter.",
+        "pause_condition_2": "End of the part.\n\nTake a few minutes to relax. Call the experimenter before continuing.",
+        "pause_entre_condition_2_hint": "Call the experimenter.",
 
         # ===== REACTION TIME BLOCK =====
-        "rt_block_intro": "Press the space bar as soon as you feel the vibration, as quickly as possible.",
+        "rt_block_intro": "In that part, Press the space bar as soon as you feel the vibration, as quickly as possible.",
         "rt_between_blocks": "End of block {}/{}.",
         "rt_block_end": "End of block {}/{}.",
-        "after_block_rt": "The same task will resume.\n\nPress the space bar when you feel the vibration.",
+        "after_block_rt": "The same task will resume.\n\nPress the space bar as quickly as possible when you feel the vibration.",
         "rt_training_intro": "Let's start with a short training.",
+        "rt_training_end_msg": "End of training. The task will now begin.",
         "rt_feedback_good": "Good!",
         "rt_feedback_click": "Click!",
 
@@ -389,7 +393,8 @@ TEXTS = {
 # ============================================================
 # CSV HEADERS
 BLOCK_FIELDNAMES = [
-    "group", "participant_num", "language", "datetime", "condition_task", "block",
+    "group", "participant_num", "session", "language", "datetime", "rt_timing",
+    "condition_task", "block",
     "faf_total_targets", "faf_hits", "faf_misses", "faf_false_positives",
     "faf_detection_rate", "faf_mean_rt_sec",
     "trial_sequence", "n_T", "n_AN", "n_AF", "n_ANT", "n_AFT",
@@ -397,7 +402,7 @@ BLOCK_FIELDNAMES = [
 ]
 
 TRIAL_FIELDNAMES = [
-    "group", "participant_num", "datetime", "condition_task",
+    "group", "participant_num", "session", "datetime", "rt_timing", "condition_task",
     "block", "trial_index", "condition_trial",
     "isi_sec", "stim_onset_clock", "stim_offset_clock",
     "audio_trigger_code", "tactile_trigger_code",
@@ -407,7 +412,7 @@ TRIAL_FIELDNAMES = [
 ]
 
 RT_TRIAL_FIELDNAMES = [
-    "group", "participant_num", "datetime", "condition_task",
+    "group", "participant_num", "session", "datetime", "rt_timing", "condition_task",
     "block", "trial_index", "condition_trial",
     "isi_sec", "stim_onset_clock", "stim_offset_clock",
     "audio_trigger_code", "tactile_trigger_code",
@@ -417,8 +422,8 @@ RT_TRIAL_FIELDNAMES = [
 ]
 
 PHENO_FIELDNAMES = [
-    "group", "participant_num", "datetime", "block_id", "time_half",
-    "question_num", "question_text", "response",
+    "group", "participant_num", "session", "datetime", "rt_timing", "block_id",
+    "time_half", "question_num", "question_text", "response",
 ]
 
 # ============================================================
@@ -450,11 +455,43 @@ def now_str():
 def timestamp_for_filename():
     return datetime.now().strftime("%Y%m%d-%H%M%S")
 
-def ensure_data_dir():
-    os.makedirs(DATA_DIR, exist_ok=True)
+def beh_dir(pp_id, ses_id):
+    """BIDS behavioral folder for this participant/session, alongside the
+    EEG recordings: STUDY_ROOT/sub-<pp_id>/ses-<ses_id>/beh/"""
+    path = os.path.join(STUDY_ROOT, f"sub-{pp_id}", f"ses-{ses_id}", "beh")
+    os.makedirs(path, exist_ok=True)
+    return path
 
-def ensure_audio_dir():
-    os.makedirs(AUDIO_DIR, exist_ok=True)
+def update_participants_tsv(pp_id, group, cond_1, cond_2, rt_timing):
+    """Add this participant to STUDY_ROOT/participants.tsv (one row per
+    participant, BIDS convention) if not already listed - including the
+    condition order actually drawn, so the randomization stays traceable
+    without having to reopen the task logs. No-op on repeat runs for the
+    same participant."""
+    subject_id = f"sub-{pp_id}"
+    path = os.path.join(STUDY_ROOT, "participants.tsv")
+    os.makedirs(STUDY_ROOT, exist_ok=True)
+
+    existing_ids = set()
+    if os.path.exists(path):
+        with open(path, newline="", encoding="utf-8") as f:
+            for row in csv.DictReader(f, delimiter="\t"):
+                existing_ids.add(row.get("participant_id", ""))
+
+    if subject_id in existing_ids:
+        return
+
+    is_new_file = not os.path.exists(path)
+    with open(path, "a", newline="", encoding="utf-8") as f:
+        writer = csv.writer(f, delimiter="\t")
+        if is_new_file:
+            writer.writerow(
+                ["participant_id", "group", "cond_1", "cond_2", "rt_timing"]
+            )
+        writer.writerow([subject_id, group, cond_1, cond_2, rt_timing])
+
+def ensure_noise_cache_dir():
+    os.makedirs(NOISE_CACHE_DIR, exist_ok=True)
 
 # ============================================================
 # LSL SETUP
@@ -522,7 +559,7 @@ def setup_arduino():
     except Exception as e:
         print(f"WARNING: Could not open Arduino on {ARDUINO_PORT}: {e}")
         arduino = None
-        sys.exit(1)
+        core.quit()
 
 def send_arduino_ttl():
     ttl_on_time = None
@@ -631,10 +668,10 @@ def generate_white_noise_array(duration=DURATION_AUDIO, pan="both", target_rms=T
     return apply_ramp(stereo)
 
 def make_audio_files():
-    ensure_audio_dir()
+    ensure_noise_cache_dir()
 
-    noise_right_path = os.path.join(AUDIO_DIR, "noise_right.wav")
-    noise_left_path = os.path.join(AUDIO_DIR, "noise_left.wav")
+    noise_right_path = os.path.join(NOISE_CACHE_DIR, "noise_right.wav")
+    noise_left_path = os.path.join(NOISE_CACHE_DIR, "noise_left.wav")
 
     write_wav_file(noise_right_path, generate_white_noise_array(pan="right"))
     write_wav_file(noise_left_path, generate_white_noise_array(pan="left"))
@@ -645,8 +682,6 @@ NOISE_RIGHT_PATH, NOISE_LEFT_PATH = make_audio_files()
 NOISE_RIGHT = sound.Sound(NOISE_RIGHT_PATH)
 NOISE_LEFT = sound.Sound(NOISE_LEFT_PATH)
 GONG = sound.Sound(os.path.join(AUDIO_DIR, "tibetan-bowl.wav"))
-MEDITATION_AUDIO = sound.Sound(os.path.join(AUDIO_DIR, "conscience-ouverte.wav"))
-MEDITATION_AUDIO.volume = 1
 
 def play_sound_obj(sound_obj):
     # Stop first to avoid overlap from previous trial
@@ -711,32 +746,28 @@ def write_csv(path, rows, fieldnames):
         writer.writeheader()
         writer.writerows(rows)
 
-def make_block_log_filename(pp_id, group):
-    ensure_data_dir()
+def make_block_log_filename(pp_id, ses_id, group):
     return os.path.join(
-        DATA_DIR,
-        f"sub-{pp_id}_group-{group}_{timestamp_for_filename()}_blocks.csv"
+        beh_dir(pp_id, ses_id),
+        f"sub-{pp_id}_ses-{ses_id}_group-{group}_{timestamp_for_filename()}_blocks.csv"
     )
 
-def make_trial_log_filename(pp_id, group):
-    ensure_data_dir()
+def make_trial_log_filename(pp_id, ses_id, group):
     return os.path.join(
-        DATA_DIR,
-        f"sub-{pp_id}_group-{group}_{timestamp_for_filename()}_trials.csv"
+        beh_dir(pp_id, ses_id),
+        f"sub-{pp_id}_ses-{ses_id}_group-{group}_{timestamp_for_filename()}_trials.csv"
     )
 
-def make_rt_log_filename(pp_id, group):
-    ensure_data_dir()
+def make_rt_log_filename(pp_id, ses_id, group):
     return os.path.join(
-        DATA_DIR,
-        f"sub-{pp_id}_group-{group}_rt_{timestamp_for_filename()}_trials.csv"
+        beh_dir(pp_id, ses_id),
+        f"sub-{pp_id}_ses-{ses_id}_group-{group}_rt_{timestamp_for_filename()}_trials.csv"
     )
 
-def make_pheno_log_filename(pp_id, group):
-    ensure_data_dir()
+def make_pheno_log_filename(pp_id, ses_id, group):
     return os.path.join(
-        DATA_DIR,
-        f"sub-{pp_id}_group-{group}_{timestamp_for_filename()}_pheno.csv"
+        beh_dir(pp_id, ses_id),
+        f"sub-{pp_id}_ses-{ses_id}_group-{group}_{timestamp_for_filename()}_pheno.csv"
     )
 
 def save_logs_now():
@@ -780,7 +811,9 @@ def save_phenomenology_responses(block_id, responses_dict, question_list, respon
                 row = {
                     "group": group,
                     "participant_num": pp_id,
+                    "session": ses_id,
                     "datetime": now_str(),
+                    "rt_timing": rt_timing,
                     "block_id": block_id,
                     "time_half": time_half,
                     "question_num": idx,
@@ -882,21 +915,6 @@ def show_baseline(seconds, send_markers=False, start_key=None, end_key=None):
         check_escape()
         draw_fixation_only()
         win.flip()
-
-    if send_markers:
-        send_event(end_key, send_lsl=True, send_ttl=False)
-
-def show_baseline_with_audio(audio_obj, seconds, send_markers=False, start_key=None, end_key=None):
-    if send_markers:
-        send_event(start_key, send_lsl=True, send_ttl=False)
-
-    audio_obj.play()
-    t_end = core.getTime() + seconds
-    while core.getTime() < t_end:
-        check_escape()
-        draw_fixation_only()
-        win.flip()
-    audio_obj.stop()
 
     if send_markers:
         send_event(end_key, send_lsl=True, send_ttl=False)
@@ -1212,17 +1230,6 @@ def ask_phenomenology_questions_after_block(block_idx):
     send_event("PHENO_BLOCK_END", send_lsl=True, send_ttl=False)
     return responses, question_texts
 
-def show_faf_feedback(stats):
-    fb_txt = TEXTS[language]["faf_feedback_template"].format(
-        hits=stats["hits"],
-        total=stats["total_targets"],
-        fp=stats["false_positives"],
-        rate=stats["detection_rate"],
-        rt=stats["mean_rt"]
-    )
-    show_text_timed(fb_txt, seconds=DURATION_FEEDBACK, height=56, wrap=TEXT_WRAP,
-                     start_key="FAF_FEEDBACK_START", end_key="FAF_FEEDBACK_END")
-
 def ask_yes_no_question(question_key="famil_repeat_question"):
     # No hint shown for these questions (per spec).
     clear_keyboard()
@@ -1408,8 +1415,7 @@ class FAFDetectionTask:
         self.running = False
 
     def add_stimulus(self, condition_trial, trial_idx, stim_onset_time):
-        """Called when a stimulus is presented. Checks if two far sounds (AF or
-        AFT - both play the same far sound, AFT just adds tactile) are consecutive."""
+        """Called when a stimulus is presented. Checks if two AF are consecutive."""
         if not self.running:
             return
 
@@ -1419,13 +1425,12 @@ class FAFDetectionTask:
             "stim_time": stim_onset_time
         })
 
-        # Check if we have two consecutive far-sound trials (AF and/or AFT)
+        # Check if we have two consecutive AF
         if len(self.stimulus_history) >= 2:
             prev_stimulus = self.stimulus_history[-2]["condition"]
             curr_stimulus = self.stimulus_history[-1]["condition"]
-            far_sound_conditions = ("AF", "AFT")
 
-            if prev_stimulus in far_sound_conditions and curr_stimulus in far_sound_conditions:
+            if prev_stimulus == "AF" and curr_stimulus == "AF":
                 self.target_indices.append(trial_idx)
 
     def log_response(self, trial_idx, response_time=None):
@@ -1539,8 +1544,8 @@ def get_trigger_codes(condition_trial):
     return audio_code, tactile_code
 
 def build_rt_block():
-    # Build one RT block (55 trials, biased toward audio+tactile)
-    # Two blocks: before (55) + after (55) = 110 total
+    # Build one RT block (55 trials, biased toward audio+tactile).
+    # Called NUM_RT_BLOCKS times (see run_rt_block_task) - 3 x 55 = 165 total.
     trials = []
     trials.extend(["T"] * 5)
     trials.extend(["AN"] * 5)
@@ -1681,7 +1686,9 @@ def run_rt_trial(condition_trial, trial_idx, block_idx=0):
     rt_log_rows.append({
         "participant_num": pp_id,
         "group": group,
+        "session": ses_id,
         "datetime": session_dt,
+        "rt_timing": rt_timing,
         "condition_task": condition_task,
         "block": block_idx + 1,
         "trial_index": trial_idx + 1,
@@ -1802,7 +1809,9 @@ def run_trial(condition_trial, block_idx, trial_idx, faf_task=None):
     trial_log_rows.append({
         "participant_num": pp_id,
         "group": group,
+        "session": ses_id,
         "datetime": session_dt,
+        "rt_timing": rt_timing,
         "condition_task": condition_task,
         "block": block_idx + 1,
         "trial_index": trial_idx + 1,
@@ -1849,6 +1858,17 @@ pp_id = collect_text_input(
 print(f"Participant ID: {pp_id}")
 
 # ============================================================
+# SESSION INFO
+# Must match the "Session" field typed into LabRecorder so the behavioral
+# logs (beh_dir) and the .xdf recordings end up under the same sub-/ses-.
+ses_id = collect_text_input(
+    TEXTS[language]["session_heading"],
+    TEXTS[language]["session_hint"],
+    max_chars=4,
+)
+print(f"Session: {ses_id}")
+
+# ============================================================
 # GROUP SELECTION
 group = "E"
 print(f"Group: {group}")
@@ -1872,13 +1892,37 @@ rt_timing = "before" if rt_timing_choice == "1" else "after"
 print(f"RT Timing: {rt_timing}")
 
 # ============================================================
+# FAMILIARIZATION TOGGLE
+# Lets the experimenter skip the stimulus familiarization (e.g. already
+# done earlier the same day).
+familiarization_choice = select_single_key(
+    TEXTS[language]["familiarization_heading"],
+    valid_keys=["o", "n"] if language == "fr" else ["y", "n"],
+)
+do_familiarization = familiarization_choice == ("O" if language == "fr" else "Y")
+print(f"Familiarization: {do_familiarization}")
+
+# ============================================================
 # STIMULUS FAMILIARIZATION
-show_stimulus_familiarization()
+if do_familiarization:
+    show_stimulus_familiarization()
+
+# ============================================================
+# BASELINE TOGGLE
+# Lets the experimenter skip the initial baseline (with its phenomenology
+# questions, which are part of the same block and are not asked separately).
+baseline_choice = select_single_key(
+    TEXTS[language]["baseline_heading"],
+    valid_keys=["o", "n"] if language == "fr" else ["y", "n"],
+)
+do_baseline = baseline_choice == ("O" if language == "fr" else "Y")
+print(f"Baseline: {do_baseline}")
 
 # ============================================================
 # CONDITION ORDER
 cond_1 = condition_task
 cond_2 = "V" if cond_1 == "M" else "M"
+update_participants_tsv(pp_id, group, cond_1, cond_2, rt_timing)
 
 show_instruction_space(
     TEXTS[language]["task_intro_start"],
@@ -1891,44 +1935,41 @@ show_instruction_space(
 session_dt = now_str()
 
 # ============================================================
-# BASELINE INDUCTION INSTRUCTION
-show_instruction_space(
-    TEXTS[language]["baseline_induction_instruction"].format(duration="7 minutes"),
-    TEXTS[language]["intro_hint"],
-    start_key="CONSIGNE_START", end_key="CONSIGNE_END",
-)
+# BASELINE INDUCTION INSTRUCTION + INITIAL BASELINE STATE + PHENOMENOLOGY
+if do_baseline:
+    show_instruction_space(
+        TEXTS[language]["baseline_induction_instruction"].format(duration="7 minutes"),
+        TEXTS[language]["intro_hint"],
+        start_key="CONSIGNE_START", end_key="CONSIGNE_END",
+    )
 
-# ============================================================
-# INITIAL BASELINE STATE (7 minutes at the very start)
-show_baseline_state()
+    # INITIAL BASELINE STATE (7 minutes at the very start)
+    show_baseline_state()
 
-show_instruction_space(
-    TEXTS[language]["pheno_questions_intro_induction"],
-    TEXTS[language]["intro_hint"],
-    start_key="CONSIGNE_START", end_key="CONSIGNE_END",
-)
+    show_instruction_space(
+        TEXTS[language]["pheno_questions_intro_induction"],
+        TEXTS[language]["intro_hint"],
+        start_key="CONSIGNE_START", end_key="CONSIGNE_END",
+    )
 
-responses, question_texts = ask_phenomenology_questions_after_induction()
-save_phenomenology_responses("baseline_initial", responses, question_texts)
+    responses, question_texts = ask_phenomenology_questions_after_induction()
+    save_phenomenology_responses("phenobaseline", responses, question_texts)
 
 # ============================================================
 # MAIN LOOP
 
-def show_condition_transition_pause():
-    """Shown once, right after Condition 1 ends, transitioning into
-    Condition 2."""
+def show_transition_pause(part_number):
+    """Pause screen shown between the 3 parts of the session (RT / M / V,
+    in whichever order was chosen). part_number is the part that JUST
+    ENDED (1 or 2) - this picks "fin de la premiere/deuxieme partie" so
+    the text always matches where we actually are, regardless of which
+    part (RT, M or V) that happens to be."""
+    key = "pause_condition_1" if part_number == 1 else "pause_condition_2"
+    hint_key = ("pause_entre_condition_1_hint" if part_number == 1
+                else "pause_entre_condition_2_hint")
     show_instruction_space(
-        TEXTS[language]["pause_condition_1"],
-        TEXTS[language]["pause_entre_condition_1_hint"],
-        start_key="CONSIGNE_START", end_key="CONSIGNE_END",
-    )
-
-def show_pre_rt_pause():
-    """Shown once, right after Condition 2 ends, transitioning into the
-    RT block."""
-    show_instruction_space(
-        TEXTS[language]["pause_condition_2"],
-        TEXTS[language]["pause_entre_condition_2_hint"],
+        TEXTS[language][key],
+        TEXTS[language][hint_key],
         start_key="CONSIGNE_START", end_key="CONSIGNE_END",
     )
 
@@ -1944,7 +1985,7 @@ def run_condition_task(cond):
 
     # Condition-specific preparation
     if condition_task == "M":
-        # M condition: prepare meditation → long fixation (8 min) → ready to start
+        # M condition: prepare meditation → long fixation (7 min) → ready to start
         show_instruction_space(
             TEXTS[language]["meditation_prepare"],
             TEXTS[language]["meditation_hint"],
@@ -1955,9 +1996,9 @@ def run_condition_task(cond):
         send_event("GONG", send_lsl=True, send_ttl=False)
         GONG.play()
 
-        # Meditation preparation period (8 min): silent fixation with meditation audio
-        show_baseline_with_audio(MEDITATION_AUDIO, DURATION_INDUCTION_MEDITATION, send_markers=True,
-                                 start_key="INDUCTION_M_START", end_key="INDUCTION_M_END")
+        # Meditation preparation period (7 min): silent fixation, no audio
+        show_baseline(DURATION_INDUCTION_MEDITATION, send_markers=True,
+                       start_key="INDUCTION_M_START", end_key="INDUCTION_M_END")
 
         # Gong sounds at the end of fixation (before stimuli begin)
         send_event("GONG", send_lsl=True, send_ttl=False)
@@ -1970,7 +2011,7 @@ def run_condition_task(cond):
         )
 
         responses, question_texts = ask_phenomenology_questions_after_induction()
-        save_phenomenology_responses("after_induction_M", responses, question_texts)
+        save_phenomenology_responses("phenoM", responses, question_texts)
 
         show_instruction_space(
             TEXTS[language]["meditation_reconnection"],
@@ -1979,14 +2020,14 @@ def run_condition_task(cond):
         )
 
     else:  # V condition
-        # V condition: prepare vigilance → long fixation (8 min) → ready to start
+        # V condition: prepare vigilance → long fixation (7 min) → ready to start
         show_instruction_space(
             TEXTS[language]["vigilance_prepare"],
             TEXTS[language]["vigilance_hint"],
             start_key="CONSIGNE_START", end_key="CONSIGNE_END",
         )
 
-        # Vigilance preparation period (8 min): fixation cross only, no sounds
+        # Vigilance preparation period (7 min): fixation cross only, no sounds
         show_baseline(DURATION_INDUCTION_VIGILANCE, send_markers=True,
                      start_key="INDUCTION_V_START", end_key="INDUCTION_V_END")
 
@@ -1997,7 +2038,7 @@ def run_condition_task(cond):
         )
 
         responses, question_texts = ask_phenomenology_questions_after_induction()
-        save_phenomenology_responses("after_induction_V", responses, question_texts)
+        save_phenomenology_responses("phenoV", responses, question_texts)
 
         show_instruction_space(
             TEXTS[language]["vigilance_reconnection"],
@@ -2048,9 +2089,11 @@ def run_condition_task(cond):
 
         row = {
             "participant_num": pp_id,
+            "session": ses_id,
             "language": language,
             "group": group,
             "datetime": session_dt,
+            "rt_timing": rt_timing,
             "condition_task": condition_task,
             "block": block_idx + 1,
             "faf_total_targets": faf_stats["total_targets"] if faf_stats else "",
@@ -2069,16 +2112,15 @@ def run_condition_task(cond):
         }
 
         # Sequence after each block's trials:
-        # end-of-block screen -> (if V) FAF detection feedback ->
-        #  phenomenology question -> after every block, including the
-        # last. The after_block message + closing fixation, however, ONLY
-        # run between blocks (not after the last block of the condition -
-        # the condition ends there and transitions straight to the
-        # pause_condition_1/2 screen instead).
+        # end-of-block screen -> phenomenology question -> after every
+        # block, including the last. The after_block message + closing
+        # fixation, however, ONLY run between blocks (not after the last
+        # block of the condition - the condition ends there and
+        # transitions straight to the pause_condition_1/2 screen instead).
+        # FAF detection stats (V condition) are still computed and logged
+        # to CSV below, just not shown on screen (raw numbers confused
+        # participants).
         show_end_of_block_screen(block_idx)
-
-        if condition_task == "V":
-            show_faf_feedback(faf_stats)
 
         show_instruction_space(
             TEXTS[language]["pheno_questions_intro_bloc"],
@@ -2087,7 +2129,7 @@ def run_condition_task(cond):
         )
 
         responses, question_texts = ask_phenomenology_questions_after_block(block_idx)
-        block_id = f"blocpps{block_idx + 1}{condition_task}"
+        block_id = f"phenoblocpps{condition_task}{block_idx + 1}"
         response_keys = ["success_rating", "nom_recognition", "nom_confidence", "near_far_difference",
                         "boundary_experience", "center_of_consciousness", "sounds_location", "sound_observer_separation"]
         save_phenomenology_responses(block_id, responses, question_texts, response_keys)
@@ -2221,7 +2263,7 @@ def run_rt_block_task():
 
     # Reset logs for RT
     rt_log_rows = []
-    rt_log_path = make_rt_log_filename(pp_id, group)
+    rt_log_path = make_rt_log_filename(pp_id, ses_id, group)
     print("\n=== Starting RT block ===")
     print("RT log:", rt_log_path)
 
@@ -2232,6 +2274,14 @@ def run_rt_block_task():
     )
 
     run_rt_training_block()
+
+    show_text_timed(
+        TEXTS[language]["rt_training_end_msg"],
+        seconds=5.0,
+        height=TEXT_HEIGHT,
+        wrap=TEXT_WRAP,
+        start_key="RT_TRAINING_END",
+    )
 
     send_event("RT_BLOCK_START", send_lsl=True, send_ttl=False)
     show_baseline(FIXATION_BEFORE_BLOCK)
@@ -2250,7 +2300,7 @@ def run_rt_block_task():
         )
 
         responses, question_texts = ask_phenomenology_questions_after_block(rt_block_idx)
-        block_id = f"blocppsRT{rt_block_idx + 1}"
+        block_id = f"phenoblocppsRT{rt_block_idx + 1}"
         response_keys = ["success_rating", "nom_recognition", "nom_confidence", "near_far_difference",
                         "boundary_experience", "center_of_consciousness", "sounds_location", "sound_observer_separation"]
         save_phenomenology_responses(block_id, responses, question_texts, response_keys)
@@ -2287,12 +2337,14 @@ def run_rt_block_task():
 
 try:
     # Initialize session logs (used for both M and V conditions)
+    # pheno_log_rows is NOT reset here: it already holds the baseline
+    # phenomenology responses collected before this block (see
+    # save_phenomenology_responses("phenobaseline", ...) above).
     block_log_rows = []
     trial_log_rows = []
-    pheno_log_rows = []
-    block_log_path = make_block_log_filename(pp_id, group)
-    trial_log_path = make_trial_log_filename(pp_id, group)
-    pheno_log_path = make_pheno_log_filename(pp_id, group)
+    block_log_path = make_block_log_filename(pp_id, ses_id, group)
+    trial_log_path = make_trial_log_filename(pp_id, ses_id, group)
+    pheno_log_path = make_pheno_log_filename(pp_id, ses_id, group)
     print("\n=== Session logs ===")
     print("Block log:", block_log_path)
     print("Trial log:", trial_log_path)
@@ -2304,16 +2356,16 @@ try:
 
     if rt_timing == "before":
         run_rt_block_task()
-        show_condition_transition_pause()
+        show_transition_pause(1)
         run_condition_task(cond_1)
-        show_condition_transition_pause()
+        show_transition_pause(2)
         run_condition_task(cond_2)
 
     else:
         run_condition_task(cond_1)
-        show_condition_transition_pause()
+        show_transition_pause(1)
         run_condition_task(cond_2)
-        show_pre_rt_pause()
+        show_transition_pause(2)
         run_rt_block_task()
 
 finally:

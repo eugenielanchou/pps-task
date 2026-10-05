@@ -10,7 +10,7 @@ Mon objectif est de répliquer ce paradigme chez des **méditants**, avec deux g
 
 Les deux groupes passent la même pps-task, avec deux conditions :
 1. **Condition méditation (M)** : les méditants méditent réellement ; les non-méditants reçoivent des consignes méditatives similaires (pour avoir une condition comparable sans pratique réelle de méditation).
-2. **Condition vigilance/absorption (V)** : tâche de comptage du nombre de fraises qui défilent à l'écran, destinée à capter l'attention et empêcher tout état méditatif pendant cette condition.
+2. **Condition vigilance/absorption (V)** : tâche de détection auditive (paradigme FAF) — le participant appuie sur la barre d'espace chaque fois qu'il entend deux sons "loin" consécutifs, destinée à capter l'attention et empêcher tout état méditatif pendant cette condition.
 
 Pendant les deux conditions, les stimulations PPS (auditives/tactiles, proches/lointaines) continuent d'être délivrées et marquées en EEG, comme dans le paradigme PPS classique sans réponse motrice.
 
@@ -29,9 +29,9 @@ Pendant les deux conditions, les stimulations PPS (auditives/tactiles, proches/l
 - **Pas d'emoji dans le code** 
 - **Textes bilingues** : dès que tu reçois une consigne de modification de texte en français (TEXTS dict), applique-la automatiquement dans les deux langues en traduisant l'anglais correspondant. Ne demande pas de confirmation.
 
-## Conventions établies dans pps-task.py (à respecter pour la suite)
+## Conventions établies dans pps-task-v3.py (à respecter pour la suite)
 
-- **Réglages spécifiques à la machine** (nom du périphérique audio, port COM Arduino) : ne jamais les coder en dur dans `pps-task.py`. Ils vivent dans `config_local.py` (non suivi par git)
+- **Réglages spécifiques à la machine** (nom du périphérique audio, port COM Arduino) : ne jamais les coder en dur dans `pps-task-v3.py`. Ils vivent dans `config_local.py` (non suivi par git)
 
 ## Guide de passation
 
@@ -55,4 +55,4 @@ Quand tu utilises le skill `/memory` pour résumer une session :
 
 ## À surveiller
 
-- ⚠️ `DURATION_RESTING_STATE` est actuellement à `1` (seconde) pour faciliter les tests — **bien remettre à `120` (2 minutes) avant toute vraie passation**.
+- ⚠️ `DURATION_INDUCTION_VIGILANCE` est actuellement à `1.0` (seconde) pour faciliter les tests, alors que le commentaire indique 7 minutes — **bien remettre à `420.0` (7 minutes, comme `DURATION_BASELINE_STATE` et `DURATION_INDUCTION_MEDITATION`) avant toute vraie passation**.
